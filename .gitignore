@@ -1,0 +1,36 @@
+# Gradle y Kotlin
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+.kotlin/
+local.properties
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+.cxx/
+captures/
+.externalNativeBuild/
+
+# Android
+*.apk
+*.aab
+*.keystore
+*.jks
+google-services.json
+
+# Sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Claude Code: la configuración personal no se comparte
+.claude/settings.local.json
+
+# Datos personales y secretos: NUNCA al repositorio
+*.cuaderno-backup
+datos-personales/
+*.pem
+*.p12
+*.key
+*.crt
