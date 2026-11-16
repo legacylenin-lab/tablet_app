@@ -130,6 +130,18 @@
 | CU-04 | Repositorios | Cada escritura deja su fila en `change_log` en la misma transacción; las consultas ocultan los borrados; borrar un cuaderno oculta sus páginas. |
 | CU-05 | Respaldo | Manifest correcto; los checksums detectan corrupción; se rechaza una versión futura. |
 
+**Estado de implementación (16/11/2026):**
+
+| Caso | Estado | Dónde |
+|---|---|---|
+| CU-01 | Hecho | `core/model/.../HlcTest.kt` (16 pruebas) |
+| CU-02 | Hecho | `core/model/.../StrokeCodecTest.kt` (11 pruebas) |
+| CU-03 | Hecho | `core/model/.../SortKeyTest.kt` (6 pruebas) |
+| CU-04 | Hecho | `core/data/src/jvmTest/...`: repositorios de cuadernos, páginas, trazos, texto, documentos y anotaciones (50 pruebas). Incluye `change_log` en la misma transacción, borrados ocultos y "borrar un cuaderno oculta sus páginas". También cubre la regla de CS-13 (el mismo PDF no se duplica) a nivel de datos. |
+| CU-05 | Parcial | `core/data/src/jvmTest/.../backup/BackupServiceTest.kt` (18 pruebas): manifiesto, checksums, versión futura, archivos dañados y rutas peligrosas. Falta el intercambio final de archivos al restaurar (etapa 6). |
+
+Además: `EntitiesTest.kt` (8 pruebas) cubre los metadatos comunes y el borrado suave.
+
 ---
 
 ## 6. Escenarios de sincronización y conflictos (v2)
