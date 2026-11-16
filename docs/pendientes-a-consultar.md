@@ -25,6 +25,11 @@
 
 | PC-13 | Ambas | La biblioteca se ordena por título con `COLLATE NOCASE` de SQLite, que solo ignora mayúsculas en letras sin acento: "Álgebra" queda después de "Zebra". | Para un orden correcto en español hay que ordenar en Kotlin (con `Collator`) o definir un criterio propio. Se decide al construir la pantalla de biblioteca (etapa 5). | Abierto |
 
+| PC-14 | Ambas | El respaldo está escrito una sola vez para Android y Windows, en un conjunto de código compartido (`jvmCommonMain` en `core:data`). Por eso `BackupService` vive en `core:data` y trabaja con flujos de bytes de Java, no como la interfaz `BackupService` con `PlatformFile` que sugiere `arquitectura.md` §7. La semántica es la misma (exportar, inspeccionar, restaurar). | Si se prefiere la interfaz en `core:domain`, se puede añadir encima sin tocar la lógica. | Abierto |
+| PC-15 | Android | El respaldo usa `VACUUM INTO` (como pide §5.3). SQLite de Android lo soporta desde Android 11 (API 30); el proyecto declara `minSdk = 24`. La tablet (Android 16) lo soporta; un Android 7 a 10 no. | Hay que decidir si se sube `minSdk` a 30 o se acepta que esas versiones no puedan hacer respaldos. | Abierto |
+| PC-16 | Ambas | El manifiesto guarda la fecha como milisegundos (`createdAtMillis`) y no como texto `createdAt` ISO, para no depender de `java.time` en Androids viejos. | Cambio menor respecto al ejemplo de §5.3; conviene confirmarlo. | Abierto |
+| PC-17 | Ambas | Restaurar se hace en dos tiempos: ya se verifica y se prepara todo en una carpeta aparte; falta el último paso (cerrar la base, intercambiar archivos, reabrir y guardar antes un respaldo automático). Ese paso necesita la app armada (etapa 6). | Es trabajo pendiente de la etapa 6, no una decisión; se anota para no olvidarlo. | Abierto |
+
 ## 2. Del entorno (afectan a cómo se compila)
 
 | ID | Afecta a | Punto | Por qué importa | Estado |

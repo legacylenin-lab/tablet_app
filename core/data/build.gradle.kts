@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidMultiplatformLibrary)
     alias(libs.plugins.sqldelight)
+    alias(libs.plugins.kotlinSerialization)
 }
 
 kotlin {
@@ -18,10 +19,15 @@ kotlin {
         }
     }
     sourceSets {
+        // Código compartido entre Android y Windows: ambos corren sobre Java (ZIP, SHA-256, JDBC).
+        val jvmCommonMain by creating { dependsOn(commonMain.get()) }
+        jvmMain.get().dependsOn(jvmCommonMain)
+        androidMain.get().dependsOn(jvmCommonMain)
         commonMain.dependencies {
             api(project(":core:domain"))
             implementation(libs.sqldelight.runtime)
             implementation(libs.sqldelight.coroutines)
+            implementation(libs.kotlinx.serialization.json)
         }
         androidMain.dependencies {
             implementation(libs.sqldelight.androidDriver)

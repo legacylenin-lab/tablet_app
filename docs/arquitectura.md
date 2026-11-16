@@ -326,7 +326,7 @@ Se completa en la etapa 2 con versiones exactas. Toda librería nueva se agrega 
 | Librería | Uso | Licencia | Estado |
 |---|---|---|---|
 | Compose Multiplatform | Interfaz | Apache 2.0 | Aprobada |
-| kotlinx-coroutines, kotlinx-serialization | Asincronía y JSON | Apache 2.0 | Aprobada. **coroutines adoptada** en la versión 1.11.0 (16/11/2026) |
+| kotlinx-coroutines, kotlinx-serialization | Asincronía y JSON | Apache 2.0 | Aprobada. **coroutines adoptada** en la versión 1.11.0 y **serialization-json** en la 1.13.0 (16/11/2026) |
 | SQLDelight | Base de datos | Apache 2.0 | Aprobada. **Adoptada** en la versión 2.4.1 (16/11/2026) |
 | AndroidX Lifecycle ViewModel (KMP), Navigation Compose | Estado y navegación | Apache 2.0 | Aprobada |
 | compose-rich-editor | Texto enriquecido | Apache 2.0 | A validar en la etapa 4 |
