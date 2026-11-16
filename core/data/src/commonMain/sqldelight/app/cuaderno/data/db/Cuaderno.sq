@@ -138,3 +138,41 @@ INSERT OR REPLACE INTO notebook(
   id, title, semester, color, sort_key,
   created_hlc, updated_hlc, device_id, author_id, deleted_hlc
 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- Páginas: una página solo es visible si ella y su cuaderno no están borrados
+selectPagesByNotebook:
+SELECT page.* FROM page
+JOIN notebook ON notebook.id = page.notebook_id
+WHERE page.notebook_id = ? AND page.deleted_hlc IS NULL AND notebook.deleted_hlc IS NULL
+ORDER BY page.sort_key;
+
+selectPageById:
+SELECT page.* FROM page
+JOIN notebook ON notebook.id = page.notebook_id
+WHERE page.id = ? AND page.deleted_hlc IS NULL AND notebook.deleted_hlc IS NULL;
+
+upsertPage:
+INSERT OR REPLACE INTO page(
+  id, notebook_id, sort_key, template, width_mm, height_mm,
+  created_hlc, updated_hlc, device_id, author_id, deleted_hlc
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- Trazos
+selectStrokesByPage:
+SELECT * FROM stroke WHERE page_id = ? AND deleted_hlc IS NULL ORDER BY created_hlc;
+
+upsertStroke:
+INSERT OR REPLACE INTO stroke(
+  id, page_id, tool, color, base_width, points,
+  created_hlc, updated_hlc, device_id, author_id, deleted_hlc
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- Bloques de texto
+selectTextBlocksByPage:
+SELECT * FROM text_block WHERE page_id = ? AND deleted_hlc IS NULL ORDER BY created_hlc;
+
+upsertTextBlock:
+INSERT OR REPLACE INTO text_block(
+  id, page_id, x, y, width, content, content_hlc,
+  created_hlc, updated_hlc, device_id, author_id, deleted_hlc
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
