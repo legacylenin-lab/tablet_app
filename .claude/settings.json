@@ -1,0 +1,28 @@
+{
+  "env": {
+    "CLAUDE_CODE_USE_POWERSHELL_TOOL": "0"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(./gradlew build)",
+      "Bash(./gradlew :composeApp:run)",
+      "Bash(./gradlew allTests)",
+      "Bash(./gradlew desktopTest)",
+      "Bash(git status)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)"
+    ],
+    "deny": [
+      "Bash(powershell:*)",
+      "Bash(powershell.exe:*)",
+      "Bash(pwsh:*)",
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(git rebase:*)",
+      "Bash(git clean:*)",
+      "Bash(rm -rf:*)"
+    ]
+  }
+}
