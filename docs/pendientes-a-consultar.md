@@ -23,6 +23,8 @@
 | PC-11 | Ambas | Al armar el esquema SQL se ajustaron dos tipos del modelo para que coincidan con `arquitectura.md` §6: `Notebook.color` pasó de texto a entero (ARGB) y `Stroke.baseWidth` de entero a decimal (`REAL`). | Son detalles internos, pero conviene que Leyni los confirme. | Abierto |
 | PC-12 | Ambas | Los repositorios usan identificadores de tipo texto (`String`) en vez de `Uuid` (ver PC-02). | Cambiarlo después implica tocar todas las firmas. | Abierto |
 
+| PC-13 | Ambas | La biblioteca se ordena por título con `COLLATE NOCASE` de SQLite, que solo ignora mayúsculas en letras sin acento: "Álgebra" queda después de "Zebra". | Para un orden correcto en español hay que ordenar en Kotlin (con `Collator`) o definir un criterio propio. Se decide al construir la pantalla de biblioteca (etapa 5). | Abierto |
+
 ## 2. Del entorno (afectan a cómo se compila)
 
 | ID | Afecta a | Punto | Por qué importa | Estado |

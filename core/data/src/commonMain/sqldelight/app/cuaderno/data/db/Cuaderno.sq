@@ -193,3 +193,37 @@ INSERT OR REPLACE INTO text_block(
   id, page_id, x, y, width, content, content_hlc,
   created_hlc, updated_hlc, device_id, author_id, deleted_hlc
 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- Documentos (biblioteca)
+selectDocuments:
+SELECT * FROM document WHERE deleted_hlc IS NULL ORDER BY title COLLATE NOCASE, id;
+
+selectDocumentById:
+SELECT * FROM document WHERE id = ? AND deleted_hlc IS NULL;
+
+-- Incluye los borrados: el hash es único aunque el documento esté borrado
+selectDocumentByHash:
+SELECT * FROM document WHERE file_hash = ?;
+
+upsertDocument:
+INSERT OR REPLACE INTO document(
+  id, title, file_hash, page_count, last_read_page, size_bytes,
+  created_hlc, updated_hlc, device_id, author_id, deleted_hlc
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- Anotaciones: visibles solo si su documento no está borrado
+selectAnnotationsByDocPage:
+SELECT annotation.* FROM annotation
+JOIN document ON document.id = annotation.document_id
+WHERE annotation.document_id = ? AND annotation.page_index = ?
+  AND annotation.deleted_hlc IS NULL AND document.deleted_hlc IS NULL
+ORDER BY annotation.created_hlc, annotation.id;
+
+selectAnnotationAnyById:
+SELECT * FROM annotation WHERE id = ?;
+
+upsertAnnotation:
+INSERT OR REPLACE INTO annotation(
+  id, document_id, page_index, kind, color, geometry,
+  created_hlc, updated_hlc, device_id, author_id, deleted_hlc
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
