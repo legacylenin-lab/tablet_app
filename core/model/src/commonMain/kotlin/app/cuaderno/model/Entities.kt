@@ -49,7 +49,7 @@ data class Notebook(
     val title: String,
     val sortKey: String,
     val semester: String? = null,
-    val color: String? = null,
+    val color: Int? = null,
 )
 
 /** Página A4 fija (RF-08): 210 × 297 mm. */
@@ -73,7 +73,7 @@ class Stroke(
     val pageId: String,
     val tool: StrokeTool,
     val colorArgb: Int,
-    val baseWidth: Int,
+    val baseWidth: Float,
     val points: ByteArray,
 ) {
     override fun equals(other: Any?): Boolean =

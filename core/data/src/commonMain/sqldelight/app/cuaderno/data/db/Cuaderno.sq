@@ -1,0 +1,140 @@
+-- Esquema de la base de datos, versión 1 (docs/arquitectura.md §6).
+-- Todas las entidades sincronizables llevan los metadatos comunes:
+-- created_hlc, updated_hlc, device_id, author_id y deleted_hlc (borrado suave).
+
+CREATE TABLE notebook (
+  id TEXT PRIMARY KEY NOT NULL,
+  title TEXT NOT NULL,
+  semester TEXT,
+  color INTEGER,
+  sort_key TEXT NOT NULL,
+  created_hlc TEXT NOT NULL,
+  updated_hlc TEXT NOT NULL,
+  device_id TEXT NOT NULL,
+  author_id TEXT NOT NULL,
+  deleted_hlc TEXT
+);
+
+CREATE TABLE page (
+  id TEXT PRIMARY KEY NOT NULL,
+  notebook_id TEXT NOT NULL REFERENCES notebook(id),
+  sort_key TEXT NOT NULL,
+  template TEXT NOT NULL,
+  width_mm INTEGER NOT NULL,
+  height_mm INTEGER NOT NULL,
+  created_hlc TEXT NOT NULL,
+  updated_hlc TEXT NOT NULL,
+  device_id TEXT NOT NULL,
+  author_id TEXT NOT NULL,
+  deleted_hlc TEXT
+);
+CREATE INDEX page_by_notebook ON page(notebook_id, sort_key);
+
+CREATE TABLE stroke (
+  id TEXT PRIMARY KEY NOT NULL,
+  page_id TEXT NOT NULL REFERENCES page(id),
+  tool TEXT NOT NULL,
+  color INTEGER NOT NULL,
+  base_width REAL NOT NULL,
+  points BLOB NOT NULL,
+  created_hlc TEXT NOT NULL,
+  updated_hlc TEXT NOT NULL,
+  device_id TEXT NOT NULL,
+  author_id TEXT NOT NULL,
+  deleted_hlc TEXT
+);
+CREATE INDEX stroke_by_page ON stroke(page_id);
+
+CREATE TABLE text_block (
+  id TEXT PRIMARY KEY NOT NULL,
+  page_id TEXT NOT NULL REFERENCES page(id),
+  x INTEGER NOT NULL,
+  y INTEGER NOT NULL,
+  width INTEGER NOT NULL,
+  content TEXT NOT NULL,
+  content_hlc TEXT NOT NULL,
+  created_hlc TEXT NOT NULL,
+  updated_hlc TEXT NOT NULL,
+  device_id TEXT NOT NULL,
+  author_id TEXT NOT NULL,
+  deleted_hlc TEXT
+);
+CREATE INDEX text_block_by_page ON text_block(page_id);
+
+CREATE TABLE document (
+  id TEXT PRIMARY KEY NOT NULL,
+  title TEXT NOT NULL,
+  file_hash TEXT NOT NULL UNIQUE,
+  page_count INTEGER NOT NULL,
+  last_read_page INTEGER NOT NULL,
+  size_bytes INTEGER NOT NULL,
+  created_hlc TEXT NOT NULL,
+  updated_hlc TEXT NOT NULL,
+  device_id TEXT NOT NULL,
+  author_id TEXT NOT NULL,
+  deleted_hlc TEXT
+);
+
+CREATE TABLE annotation (
+  id TEXT PRIMARY KEY NOT NULL,
+  document_id TEXT NOT NULL REFERENCES document(id),
+  page_index INTEGER NOT NULL,
+  kind TEXT NOT NULL,
+  color INTEGER NOT NULL,
+  geometry BLOB NOT NULL,
+  created_hlc TEXT NOT NULL,
+  updated_hlc TEXT NOT NULL,
+  device_id TEXT NOT NULL,
+  author_id TEXT NOT NULL,
+  deleted_hlc TEXT
+);
+CREATE INDEX annotation_by_doc_page ON annotation(document_id, page_index);
+
+CREATE TABLE device (
+  id TEXT PRIMARY KEY NOT NULL,
+  name TEXT NOT NULL,
+  is_local INTEGER NOT NULL
+);
+
+-- Registro de operaciones locales (base de la sincronización de la v2).
+-- seq es un orden local: nunca sale del dispositivo.
+CREATE TABLE change_log (
+  seq INTEGER PRIMARY KEY AUTOINCREMENT,
+  entity TEXT NOT NULL,
+  entity_id TEXT NOT NULL,
+  op TEXT NOT NULL,
+  hlc TEXT NOT NULL
+);
+
+-- Último HLC emitido: se guarda para no retroceder tras reiniciar.
+CREATE TABLE clock_state (
+  id INTEGER PRIMARY KEY NOT NULL CHECK (id = 1),
+  last_hlc TEXT NOT NULL
+);
+
+-- Reloj
+selectClock:
+SELECT last_hlc FROM clock_state WHERE id = 1;
+
+upsertClock:
+INSERT OR REPLACE INTO clock_state(id, last_hlc) VALUES (1, ?);
+
+-- Registro de cambios
+insertChange:
+INSERT INTO change_log(entity, entity_id, op, hlc) VALUES (?, ?, ?, ?);
+
+selectChanges:
+SELECT seq, entity, entity_id, op, hlc FROM change_log ORDER BY seq;
+
+-- Cuadernos (las consultas normales ocultan los borrados)
+selectNotebooks:
+SELECT * FROM notebook WHERE deleted_hlc IS NULL ORDER BY sort_key;
+
+selectNotebookById:
+SELECT * FROM notebook WHERE id = ? AND deleted_hlc IS NULL;
+
+upsertNotebook:
+INSERT OR REPLACE INTO notebook(
+  id, title, semester, color, sort_key,
+  created_hlc, updated_hlc, device_id, author_id, deleted_hlc
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);

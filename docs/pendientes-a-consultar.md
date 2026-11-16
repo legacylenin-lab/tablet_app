@@ -19,6 +19,10 @@
 | PC-03 | Ambas | `arquitectura.md` §9 dice que el nombre definitivo del paquete se fija en la etapa 2. Se está usando `app.cuaderno.<módulo>` (por ejemplo `app.cuaderno.model`). | Hay que confirmarlo para registrarlo en el documento. | Abierto |
 | PC-04 | Ambas | `arquitectura.md` §11 pide completar con versiones exactas de las librerías en la etapa 2. Las versiones del proyecto base (Kotlin, Compose, AGP…) están en `gradle/libs.versions.toml`. | Falta decidir cuáles se fijan como oficiales (en particular Compose Material 3 está en versión alfa). | Abierto |
 
+| PC-10 | Ambas | Las pruebas de la base de datos (`core:data`) están en `jvmTest`, no en `commonTest` como pide `arquitectura.md` §9, porque necesitan el driver de SQLite de escritorio. La lógica sigue siendo común. | Si se quiere correrlas también en Android (emulador), hay que montar un driver de pruebas por plataforma. | Abierto |
+| PC-11 | Ambas | Al armar el esquema SQL se ajustaron dos tipos del modelo para que coincidan con `arquitectura.md` §6: `Notebook.color` pasó de texto a entero (ARGB) y `Stroke.baseWidth` de entero a decimal (`REAL`). | Son detalles internos, pero conviene que Leyni los confirme. | Abierto |
+| PC-12 | Ambas | Los repositorios usan identificadores de tipo texto (`String`) en vez de `Uuid` (ver PC-02). | Cambiarlo después implica tocar todas las firmas. | Abierto |
+
 ## 2. Del entorno (afectan a cómo se compila)
 
 | ID | Afecta a | Punto | Por qué importa | Estado |

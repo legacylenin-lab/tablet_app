@@ -67,9 +67,9 @@ class EntitiesTest {
     @Test
     fun trazosConLosMismosPuntosSonIguales() {
         val m = meta()
-        val a = Stroke(m, "p", StrokeTool.PEN, 0xFF000000.toInt(), 3, byteArrayOf(1, 2, 3))
-        val b = Stroke(m, "p", StrokeTool.PEN, 0xFF000000.toInt(), 3, byteArrayOf(1, 2, 3))
-        val c = Stroke(m, "p", StrokeTool.PEN, 0xFF000000.toInt(), 3, byteArrayOf(1, 2, 4))
+        val a = Stroke(m, "p", StrokeTool.PEN, 0xFF000000.toInt(), 3f, byteArrayOf(1, 2, 3))
+        val b = Stroke(m, "p", StrokeTool.PEN, 0xFF000000.toInt(), 3f, byteArrayOf(1, 2, 3))
+        val c = Stroke(m, "p", StrokeTool.PEN, 0xFF000000.toInt(), 3f, byteArrayOf(1, 2, 4))
         assertEquals(a, b)
         assertEquals(a.hashCode(), b.hashCode())
         assertNotEquals(a, c)
