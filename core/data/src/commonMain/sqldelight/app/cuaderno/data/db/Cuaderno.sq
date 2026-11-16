@@ -159,7 +159,16 @@ INSERT OR REPLACE INTO page(
 
 -- Trazos
 selectStrokesByPage:
-SELECT * FROM stroke WHERE page_id = ? AND deleted_hlc IS NULL ORDER BY created_hlc;
+SELECT stroke.* FROM stroke
+JOIN page ON page.id = stroke.page_id
+JOIN notebook ON notebook.id = page.notebook_id
+WHERE stroke.page_id = ? AND stroke.deleted_hlc IS NULL
+  AND page.deleted_hlc IS NULL AND notebook.deleted_hlc IS NULL
+ORDER BY stroke.created_hlc, stroke.id;
+
+-- Incluye los borrados: sirve para deshacer un borrado
+selectStrokeAnyById:
+SELECT * FROM stroke WHERE id = ?;
 
 upsertStroke:
 INSERT OR REPLACE INTO stroke(
@@ -169,7 +178,15 @@ INSERT OR REPLACE INTO stroke(
 
 -- Bloques de texto
 selectTextBlocksByPage:
-SELECT * FROM text_block WHERE page_id = ? AND deleted_hlc IS NULL ORDER BY created_hlc;
+SELECT text_block.* FROM text_block
+JOIN page ON page.id = text_block.page_id
+JOIN notebook ON notebook.id = page.notebook_id
+WHERE text_block.page_id = ? AND text_block.deleted_hlc IS NULL
+  AND page.deleted_hlc IS NULL AND notebook.deleted_hlc IS NULL
+ORDER BY text_block.created_hlc, text_block.id;
+
+selectTextBlockById:
+SELECT * FROM text_block WHERE id = ? AND deleted_hlc IS NULL;
 
 upsertTextBlock:
 INSERT OR REPLACE INTO text_block(
