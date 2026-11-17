@@ -18,6 +18,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.rememberCoroutineScope
@@ -43,6 +46,8 @@ import app.cuaderno.AppServices
 import app.cuaderno.domain.EnsureFirstPage
 import app.cuaderno.model.EntityId
 import app.cuaderno.model.Notebook
+import app.cuaderno.model.PageTemplate
+import app.cuaderno.notebooks.PageNav
 import app.cuaderno.model.StrokeTool
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
@@ -71,7 +76,11 @@ actual fun InkPrototypeScreen(services: AppServices?, notebook: Notebook?, onBac
                 }
             }
         }
-        if (useInk) InkPageScreen(services, notebook, Modifier.weight(1f)) else ComposeInkScreen(Modifier.weight(1f))
+        when {
+            services != null && notebook != null -> NotebookPagesScreen(services, notebook, Modifier.weight(1f))
+            useInk -> InkPageScreen(services, notebook, Modifier.weight(1f))
+            else -> ComposeInkScreen(Modifier.weight(1f))
+        }
     }
 }
 
@@ -118,7 +127,13 @@ private class UserAction(val kind: ActionKind, val strokes: List<DrawnStroke>)
  * Solo el lápiz escribe; el dedo se descarta antes de llegar a la tinta (RF-03).
  */
 @Composable
-private fun InkPageScreen(services: AppServices?, notebook: Notebook?, modifier: Modifier = Modifier) {
+private fun InkPageScreen(
+    services: AppServices?,
+    notebook: Notebook?,
+    modifier: Modifier = Modifier,
+    fixedPageId: EntityId? = null,
+    controls: PageControls? = null,
+) {
     val scope = rememberCoroutineScope()
     val strokes = remember { mutableStateListOf<DrawnStroke>() }
     val undoStack = remember { mutableStateListOf<UserAction>() }
@@ -146,9 +161,9 @@ private fun InkPageScreen(services: AppServices?, notebook: Notebook?, modifier:
         if (services == null) return@LaunchedEffect
         try {
             val ensure = EnsureFirstPage(services.notebooks, services.pages)
-            val page = if (notebook != null) ensure.forNotebook(notebook.meta.id) else ensure()
-            pageId = page.meta.id
-            for (saved in services.ink.observeStrokes(page.meta.id).first()) {
+            val id = fixedPageId ?: (if (notebook != null) ensure.forNotebook(notebook.meta.id) else ensure()).meta.id
+            pageId = id
+            for (saved in services.ink.observeStrokes(id).first()) {
                 val ink = saved.toInkStroke() ?: continue
                 strokes += DrawnStroke(CompletableDeferred(saved.meta.id), ink, saved.tool)
             }
@@ -167,7 +182,7 @@ private fun InkPageScreen(services: AppServices?, notebook: Notebook?, modifier:
 
     fun persistVisibility(targets: List<DrawnStroke>, visible: Boolean) {
         val s = services ?: return
-        scope.launch {
+        s.saveScope.launch {
             try {
                 val ids = targets.mapNotNull { it.idOrNull() }
                 if (visible) s.ink.restore(ids) else s.ink.erase(ids)
@@ -182,7 +197,7 @@ private fun InkPageScreen(services: AppServices?, notebook: Notebook?, modifier:
     fun persistNew(drawn: List<DrawnStroke>) {
         val s = services
         val page = pageId
-        scope.launch {
+        (s?.saveScope ?: scope).launch {
             for (d in drawn) {
                 try {
                     val newStroke = d.ink.toNewStroke(d.tool) ?: throw IllegalStateException("trazo vacío")
@@ -226,12 +241,12 @@ private fun InkPageScreen(services: AppServices?, notebook: Notebook?, modifier:
     }
 
     Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant)) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text("Página 1 · ${notebook?.title ?: EnsureFirstPage.FIRST_NOTEBOOK_TITLE}", style = MaterialTheme.typography.titleMedium)
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    "${notebook?.title ?: EnsureFirstPage.FIRST_NOTEBOOK_TITLE}" + (controls?.let { " · ${it.nav.label}" } ?: ""),
+                    style = MaterialTheme.typography.titleMedium,
+                )
                 Text(
                     when {
                         message != null -> message!!
@@ -243,6 +258,12 @@ private fun InkPageScreen(services: AppServices?, notebook: Notebook?, modifier:
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
+            Row(modifier = Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (controls != null) {
+                OutlinedButton(onClick = controls.onPrevious, enabled = controls.nav.canGoBack, modifier = Modifier.padding(end = 8.dp)) { Text("◀") }
+                OutlinedButton(onClick = controls.onNext, enabled = controls.nav.canGoForward, modifier = Modifier.padding(end = 8.dp)) { Text("▶") }
+                OutlinedButton(onClick = controls.onAdd, modifier = Modifier.padding(end = 16.dp)) { Text("Página nueva") }
+            }
             OutlinedButton(onClick = { undo() }, enabled = undoStack.isNotEmpty(), modifier = Modifier.padding(end = 8.dp)) {
                 Text("Deshacer")
             }
@@ -253,6 +274,7 @@ private fun InkPageScreen(services: AppServices?, notebook: Notebook?, modifier:
                 Text("Ajustar (${(viewport.zoom * 100).roundToInt()}%)")
             }
             Button(onClick = { clearPage() }) { Text("Limpiar") }
+            }
         }
 
         InkToolbar(
@@ -402,5 +424,49 @@ private fun InkPageScreen(services: AppServices?, notebook: Notebook?, modifier:
                 )
             }
         }
+    }
+}
+
+/** Lo que la pantalla de la página necesita para moverse por el cuaderno. */
+private class PageControls(val nav: PageNav, val onPrevious: () -> Unit, val onNext: () -> Unit, val onAdd: () -> Unit)
+
+/**
+ * Las páginas de un cuaderno: muestra una a la vez, con flechas y «Página nueva». Cada página
+ * carga y guarda sus propios trazos (se vuelve a crear la pantalla al cambiar de página).
+ */
+@Composable
+private fun NotebookPagesScreen(services: AppServices, notebook: Notebook, modifier: Modifier = Modifier) {
+    val scope = rememberCoroutineScope()
+    val pages by services.pages.observeByNotebook(notebook.meta.id).collectAsState(initial = null)
+    var index by remember { mutableIntStateOf(0) }
+
+    // Un cuaderno nuevo no tiene páginas: se le crea la primera.
+    LaunchedEffect(pages) {
+        if (pages?.isEmpty() == true) EnsureFirstPage(services.notebooks, services.pages).forNotebook(notebook.meta.id)
+    }
+
+    val list = pages
+    if (list.isNullOrEmpty()) {
+        Text("Abriendo el cuaderno…", modifier = modifier.padding(16.dp))
+        return
+    }
+    val current = PageNav.clampIndex(index, list.size)
+    val currentPage = list[current]
+    key(currentPage.meta.id) {
+        InkPageScreen(
+            services, notebook, modifier,
+            fixedPageId = currentPage.meta.id,
+            controls = PageControls(
+                nav = PageNav.at(current, list.size),
+                onPrevious = { index = current - 1 },
+                onNext = { index = current + 1 },
+                onAdd = {
+                    scope.launch {
+                        services.pages.add(notebook.meta.id, PageTemplate.BLANK, after = currentPage.meta.id)
+                        index = current + 1
+                    }
+                },
+            ),
+        )
     }
 }
