@@ -51,4 +51,9 @@ android {
     buildFeatures {
         compose = true
     }
+    lint {
+        // PQ-05: esta regla protesta por la ruta del SDK en local.properties (archivo solo de esta PC),
+        // aunque Android Studio la escribe en el formato estándar.
+        disable += "PropertyEscape"
+    }
 }
