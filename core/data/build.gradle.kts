@@ -17,6 +17,12 @@ kotlin {
         compilerOptions {
             jvmTarget = JvmTarget.JVM_11
         }
+        // PQ-10: pruebas instrumentadas (corren en el emulador o en la tablet).
+        withDeviceTestBuilder {
+            sourceSetTreeName = "test"
+        }.configure {
+            instrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        }
     }
     sourceSets {
         // Código compartido entre Android y Windows: ambos corren sobre Java (ZIP, SHA-256, JDBC).
@@ -37,6 +43,10 @@ kotlin {
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
+        }
+        getByName("androidDeviceTest").dependencies {
+            implementation(libs.androidx.testRunner)
+            implementation(libs.androidx.testExt.junit)
         }
         jvmTest.dependencies {
             implementation(libs.kotlinx.coroutines.test)

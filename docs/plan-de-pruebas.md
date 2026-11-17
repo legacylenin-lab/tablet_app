@@ -143,7 +143,7 @@
 | CU-04 | Hecho | `core/data/src/jvmTest/...`: repositorios de cuadernos, páginas, trazos, texto, documentos y anotaciones (50 pruebas). Incluye `change_log` en la misma transacción, borrados ocultos y "borrar un cuaderno oculta sus páginas". También cubre la regla de CS-13 (el mismo PDF no se duplica) a nivel de datos. |
 | CU-05 | Parcial | `core/data/src/jvmTest/.../backup/BackupServiceTest.kt` (18 pruebas): manifiesto, checksums, versión futura, archivos dañados y rutas peligrosas. Falta el intercambio final de archivos al restaurar (etapa 6). |
 
-| CU-05b | Pendiente | Prueba instrumentada de Android en `core:data` (decisión de Leyni, 17/11/2026). |
+| CU-05b | Hecho | `core/data/src/androidDeviceTest/.../AndroidBackupTest.kt` (1 prueba, ejecutada el 17/11/2026 en el emulador `Medium_Phone_API_37.0`): `VACUUM INTO` sobre el SQLite real de Android, manifiesto, checksums, copia que se abre y pasa `integrity_check`. Se ejecuta con `./gradlew :core:data:connectedAndroidDeviceTest` con un emulador encendido; no corre en `./gradlew build`. |
 | CU-06 | Hecho | `core/model/.../EntityIdTest.kt` (5 pruebas: parse válido e inválido) y `core/domain/.../RandomIdGeneratorTest.kt` (2 pruebas: 10.000 ids únicos con formato correcto). |
 | CU-07 | Hecho | `core/model/.../TitleSortTest.kt` (9 pruebas; corren en JVM y en el destino Android) y pruebas de orden y recálculo en `SqlNotebookRepositoryTest` (3) y `SqlLibraryRepositoryTest` (2). |
 
