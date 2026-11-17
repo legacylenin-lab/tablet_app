@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -25,13 +24,16 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import kotlin.math.roundToInt
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.ink.authoring.compose.InProgressStrokes
 import androidx.ink.rendering.android.canvas.CanvasStrokeRenderer
@@ -123,6 +125,7 @@ private fun InkPageScreen(services: AppServices?, modifier: Modifier = Modifier)
     var lastDevice by remember { mutableStateOf("ninguno todavía") }
 
     var toolSettings by remember { mutableStateOf(ToolSettings()) }
+    var viewport by remember { mutableStateOf(PageViewport(1f, 0f, 0f)) }
 
     val brush = remember(toolSettings.tool, toolSettings.colorArgb, toolSettings.width) {
         brushFor(toolSettings.tool, toolSettings.colorArgb, toolSettings.width)
@@ -240,6 +243,9 @@ private fun InkPageScreen(services: AppServices?, modifier: Modifier = Modifier)
             OutlinedButton(onClick = { redo() }, enabled = redoStack.isNotEmpty(), modifier = Modifier.padding(end = 8.dp)) {
                 Text("Rehacer")
             }
+            OutlinedButton(onClick = { viewport = PageViewport(1f, 0f, 0f) }, enabled = viewport.zoom > 1f, modifier = Modifier.padding(end = 8.dp)) {
+                Text("Ajustar (${(viewport.zoom * 100).roundToInt()}%)")
+            }
             Button(onClick = { clearPage() }) { Text("Limpiar") }
         }
 
@@ -251,23 +257,75 @@ private fun InkPageScreen(services: AppServices?, modifier: Modifier = Modifier)
         )
 
         BoxWithConstraints(
-            modifier = Modifier.weight(1f).fillMaxWidth(),
-            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .clipToBounds()
+                // El dedo desplaza y hace zoom (RF-03). No consume nada: de que el dedo no escriba se encarga la hoja.
+                // Si el lápiz está apoyado se ignora el dedo (la palma).
+                .pointerInput(Unit) {
+                    awaitPointerEventScope {
+                        while (true) {
+                            val event = awaitPointerEvent(PointerEventPass.Initial)
+                            val penDown = event.changes.any { (it.type == PointerType.Stylus || it.type == PointerType.Eraser) && it.pressed }
+                            val touches = event.changes.filter { it.type == PointerType.Touch && it.pressed && it.previousPressed }
+                            if (penDown || touches.isEmpty()) continue
+                            val cx = touches.map { it.position.x }.average().toFloat()
+                            val cy = touches.map { it.position.y }.average().toFloat()
+                            val px = touches.map { it.previousPosition.x }.average().toFloat()
+                            val py = touches.map { it.previousPosition.y }.average().toFloat()
+                            var zoomFactor = 1f
+                            if (touches.size >= 2) {
+                                val now = (touches[0].position - touches[1].position).getDistance()
+                                val before = (touches[0].previousPosition - touches[1].previousPosition).getDistance()
+                                if (before > 0f) zoomFactor = now / before
+                            }
+                            val vw = size.width.toFloat()
+                            val vh = size.height.toFloat()
+                            val fit = minOf(vw / PAGE_WIDTH_UNITS, vh / PAGE_HEIGHT_UNITS)
+                            val fitW = PAGE_WIDTH_UNITS * fit
+                            val fitH = PAGE_HEIGHT_UNITS * fit
+                            viewport = viewport.clamped(fitW, fitH, vw, vh).transformed(cx, cy, cx - px, cy - py, zoomFactor, fitW, fitH, vw, vh)
+                        }
+                    }
+                },
+            contentAlignment = Alignment.TopStart,
         ) {
-            // La hoja A4 se ajusta al espacio disponible. `scale` son píxeles por unidad del mundo.
-            val scale = minOf(constraints.maxWidth / PAGE_WIDTH_UNITS, constraints.maxHeight / PAGE_HEIGHT_UNITS)
-            val density = LocalDensity.current
-            val pageWidth = with(density) { (PAGE_WIDTH_UNITS * scale).toDp() }
-            val pageHeight = with(density) { (PAGE_HEIGHT_UNITS * scale).toDp() }
-            val strokeToScreen = remember(scale) { android.graphics.Matrix().apply { setScale(scale, scale) } }
-            val screenToWorld = remember(scale) { ComposeMatrix().apply { scale(1f / scale, 1f / scale) } }
+            // La hoja A4 entera ajustada al espacio disponible (zoom 1). `scale` son píxeles por unidad del mundo.
+            val fitScale = minOf(constraints.maxWidth / PAGE_WIDTH_UNITS, constraints.maxHeight / PAGE_HEIGHT_UNITS)
+            val fitWidth = PAGE_WIDTH_UNITS * fitScale
+            val fitHeight = PAGE_HEIGHT_UNITS * fitScale
+            val vp = viewport.clamped(fitWidth, fitHeight, constraints.maxWidth.toFloat(), constraints.maxHeight.toFloat())
+            val scale = fitScale * vp.zoom
+            // La capa de tinta mide siempre lo que la pantalla, no lo que la hoja ampliada: con zoom la hoja
+            // llega a millones de píxeles y la tinta de baja latencia se quedaba sin memoria.
+            val view by rememberUpdatedState(vp)
+            val viewScale by rememberUpdatedState(scale)
+            // De la hoja (décimas de mm) a la pantalla.
+            val worldToScreen = remember(scale, vp.offsetX, vp.offsetY) {
+                android.graphics.Matrix().apply {
+                    setScale(scale, scale)
+                    postTranslate(vp.offsetX, vp.offsetY)
+                }
+            }
+            // De la pantalla a la hoja: (punto - esquina) / escala. Matriz 4x4 por columnas.
+            val screenToWorld = remember(scale, vp.offsetX, vp.offsetY) {
+                val s = 1f / scale
+                ComposeMatrix(
+                    floatArrayOf(
+                        s, 0f, 0f, 0f,
+                        0f, s, 0f, 0f,
+                        0f, 0f, 1f, 0f,
+                        -vp.offsetX * s, -vp.offsetY * s, 0f, 1f,
+                    ),
+                )
+            }
 
             Box(
                 modifier = Modifier
-                    .size(pageWidth, pageHeight)
-                    .background(Color.White)
+                    .fillMaxSize()
                     // Se ejecuta ANTES (pasada Initial) que la tinta: lo que se consume aquí, la tinta no lo dibuja.
-                    .pointerInput(scale) {
+                    .pointerInput(Unit) {
                         val gesture = mutableListOf<DrawnStroke>()
                         awaitPointerEventScope {
                             while (true) {
@@ -285,10 +343,11 @@ private fun InkPageScreen(services: AppServices?, modifier: Modifier = Modifier)
                                         InputAction.ERASE -> {
                                             change.consume()
                                             if (change.pressed) {
-                                                val x = change.position.x / scale
-                                                val y = change.position.y / scale
+                                                val s = viewScale
+                                                val x = (change.position.x - view.offsetX) / s
+                                                val y = (change.position.y - view.offsetY) / s
                                                 for (d in strokes) {
-                                                    if (d.visible && InkMath.isNear(d.points, x, y, ERASER_RADIUS_PX / scale)) {
+                                                    if (d.visible && InkMath.isNear(d.points, x, y, ERASER_RADIUS_PX / s)) {
                                                         d.visible = false
                                                         gesture += d
                                                     }
@@ -307,13 +366,18 @@ private fun InkPageScreen(services: AppServices?, modifier: Modifier = Modifier)
                         }
                     },
             ) {
-                // Trazos terminados (con la página ajustada a la pantalla).
+                // Fondo gris, hoja blanca y trazos terminados.
                 Canvas(Modifier.fillMaxSize()) {
+                    drawRect(
+                        Color.White,
+                        topLeft = Offset(vp.offsetX, vp.offsetY),
+                        size = Size(PAGE_WIDTH_UNITS * scale, PAGE_HEIGHT_UNITS * scale),
+                    )
                     drawIntoCanvas { canvas ->
                         val native = canvas.nativeCanvas
                         native.save()
-                        native.concat(strokeToScreen)
-                        for (d in strokes) if (d.visible) renderer.draw(native, d.ink, strokeToScreen)
+                        native.concat(worldToScreen)
+                        for (d in strokes) if (d.visible) renderer.draw(native, d.ink, worldToScreen)
                         native.restore()
                     }
                 }
@@ -334,4 +398,3 @@ private fun InkPageScreen(services: AppServices?, modifier: Modifier = Modifier)
         }
     }
 }
-
