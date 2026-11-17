@@ -9,6 +9,7 @@ import app.cuaderno.model.Document
 import app.cuaderno.model.EntityId
 import app.cuaderno.model.Hlc
 import app.cuaderno.model.Meta
+import app.cuaderno.model.TitleSort
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -92,6 +93,7 @@ class SqlDocumentRepository(
         queries.upsertDocument(
             id = d.meta.id.value,
             title = d.title,
+            title_sort = TitleSort.of(d.title),
             file_hash = d.fileHash,
             page_count = d.pageCount.toLong(),
             last_read_page = d.lastReadPage.toLong(),

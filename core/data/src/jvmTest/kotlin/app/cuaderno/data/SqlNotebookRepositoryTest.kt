@@ -97,6 +97,43 @@ class SqlNotebookRepositoryTest {
     }
 
     @Test
+    fun losCuadernosSePuedenListarAlfabeticamenteComoEnEspanol() = runTest {
+        val repo = repo()
+        listOf("Zoología", "Ñoño", "Álgebra", "nube", "Óptica").forEach { repo.create(it) }
+        assertEquals(
+            listOf("Álgebra", "nube", "Ñoño", "Óptica", "Zoología"),
+            repo.observeAllByTitle().first().map { it.title },
+        )
+        // El orden manual (por sortKey) no se altera: sigue el orden de creación.
+        assertEquals(
+            listOf("Zoología", "Ñoño", "Álgebra", "nube", "Óptica"),
+            repo.observeAll().first().map { it.title },
+        )
+    }
+
+    @Test
+    fun renombrarRecalculaLaClaveYReordenaPorTitulo() = runTest {
+        val repo = repo()
+        val a = repo.create("Zebra")
+        repo.create("Mono")
+        assertEquals(listOf("Mono", "Zebra"), repo.observeAllByTitle().first().map { it.title })
+        repo.rename(a.meta.id, "Águila")
+        assertEquals(listOf("Águila", "Mono"), repo.observeAllByTitle().first().map { it.title })
+        val clave = db.cuadernoQueries.selectNotebookById(a.meta.id.value).executeAsOne().title_sort
+        assertEquals("aguila", clave)
+    }
+
+    @Test
+    fun moverUnCuadernoNoCambiaSuClaveDeTitulo() = runTest {
+        val repo = repo()
+        val a = repo.create("Álgebra")
+        val b = repo.create("Física")
+        repo.move(b.meta.id, after = null)
+        assertEquals("algebra", db.cuadernoQueries.selectNotebookById(a.meta.id.value).executeAsOne().title_sort)
+        assertEquals(listOf("Álgebra", "Física"), repo.observeAllByTitle().first().map { it.title })
+    }
+
+    @Test
     fun elRelojNoRetrocedeAunqueLaHoraDelSistemaRetroceda() = runTest {
         val repo = repo()
         now = 5_000

@@ -5,6 +5,7 @@
 CREATE TABLE notebook (
   id TEXT PRIMARY KEY NOT NULL,
   title TEXT NOT NULL,
+  title_sort TEXT NOT NULL,
   semester TEXT,
   color INTEGER,
   sort_key TEXT NOT NULL,
@@ -14,6 +15,8 @@ CREATE TABLE notebook (
   author_id TEXT NOT NULL,
   deleted_hlc TEXT
 );
+
+CREATE INDEX notebook_by_title ON notebook(title_sort);
 
 CREATE TABLE page (
   id TEXT PRIMARY KEY NOT NULL,
@@ -64,6 +67,7 @@ CREATE INDEX text_block_by_page ON text_block(page_id);
 CREATE TABLE document (
   id TEXT PRIMARY KEY NOT NULL,
   title TEXT NOT NULL,
+  title_sort TEXT NOT NULL,
   file_hash TEXT NOT NULL UNIQUE,
   page_count INTEGER NOT NULL,
   last_read_page INTEGER NOT NULL,
@@ -74,6 +78,8 @@ CREATE TABLE document (
   author_id TEXT NOT NULL,
   deleted_hlc TEXT
 );
+
+CREATE INDEX document_by_title ON document(title_sort);
 
 CREATE TABLE annotation (
   id TEXT PRIMARY KEY NOT NULL,
@@ -130,14 +136,18 @@ SELECT seq, entity, entity_id, op, hlc FROM change_log ORDER BY seq;
 selectNotebooks:
 SELECT * FROM notebook WHERE deleted_hlc IS NULL ORDER BY sort_key;
 
+-- Orden alfabético por título (en español); selectNotebooks sigue el orden manual del usuario
+selectNotebooksByTitle:
+SELECT * FROM notebook WHERE deleted_hlc IS NULL ORDER BY title_sort, id;
+
 selectNotebookById:
 SELECT * FROM notebook WHERE id = ? AND deleted_hlc IS NULL;
 
 upsertNotebook:
 INSERT OR REPLACE INTO notebook(
-  id, title, semester, color, sort_key,
+  id, title, title_sort, semester, color, sort_key,
   created_hlc, updated_hlc, device_id, author_id, deleted_hlc
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 -- Páginas: una página solo es visible si ella y su cuaderno no están borrados
 selectPagesByNotebook:
@@ -196,7 +206,7 @@ INSERT OR REPLACE INTO text_block(
 
 -- Documentos (biblioteca)
 selectDocuments:
-SELECT * FROM document WHERE deleted_hlc IS NULL ORDER BY title COLLATE NOCASE, id;
+SELECT * FROM document WHERE deleted_hlc IS NULL ORDER BY title_sort, id;
 
 selectDocumentById:
 SELECT * FROM document WHERE id = ? AND deleted_hlc IS NULL;
@@ -207,9 +217,9 @@ SELECT * FROM document WHERE file_hash = ?;
 
 upsertDocument:
 INSERT OR REPLACE INTO document(
-  id, title, file_hash, page_count, last_read_page, size_bytes,
+  id, title, title_sort, file_hash, page_count, last_read_page, size_bytes,
   created_hlc, updated_hlc, device_id, author_id, deleted_hlc
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 -- Anotaciones: visibles solo si su documento no está borrado
 selectAnnotationsByDocPage:

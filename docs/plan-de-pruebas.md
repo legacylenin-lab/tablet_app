@@ -145,7 +145,7 @@
 
 | CU-05b | Pendiente | Prueba instrumentada de Android en `core:data` (decisión de Leyni, 17/11/2026). |
 | CU-06 | Hecho | `core/model/.../EntityIdTest.kt` (5 pruebas: parse válido e inválido) y `core/domain/.../RandomIdGeneratorTest.kt` (2 pruebas: 10.000 ids únicos con formato correcto). |
-| CU-07 | Pendiente | Junto con la columna `title_sort` (PQ-13). |
+| CU-07 | Hecho | `core/model/.../TitleSortTest.kt` (9 pruebas; corren en JVM y en el destino Android) y pruebas de orden y recálculo en `SqlNotebookRepositoryTest` (3) y `SqlLibraryRepositoryTest` (2). |
 
 Además: `EntitiesTest.kt` (8 pruebas) cubre los metadatos comunes y el borrado suave.
 

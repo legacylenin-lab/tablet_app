@@ -8,6 +8,7 @@ import app.cuaderno.model.Hlc
 import app.cuaderno.model.Meta
 import app.cuaderno.model.Notebook
 import app.cuaderno.model.SortKey
+import app.cuaderno.model.TitleSort
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -23,6 +24,9 @@ class SqlNotebookRepository(
 
     override fun observeAll(): Flow<List<Notebook>> =
         queries.selectNotebooks().asFlow().mapToList(dispatcher).map { rows -> rows.map { it.toModel() } }
+
+    override fun observeAllByTitle(): Flow<List<Notebook>> =
+        queries.selectNotebooksByTitle().asFlow().mapToList(dispatcher).map { rows -> rows.map { it.toModel() } }
 
     override suspend fun create(title: String): Notebook = withContext(dispatcher) {
         ctx.db.transactionWithResult {
@@ -84,6 +88,7 @@ class SqlNotebookRepository(
         queries.upsertNotebook(
             id = n.meta.id.value,
             title = n.title,
+            title_sort = TitleSort.of(n.title),
             semester = n.semester,
             color = n.color?.toLong(),
             sort_key = n.sortKey,

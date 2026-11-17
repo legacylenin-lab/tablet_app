@@ -68,14 +68,31 @@ class SqlLibraryRepositoryTest {
     }
 
     @Test
-    fun laBibliotecaSeOrdenaPorTituloSinDistinguirMayusculas() = runTest {
+    fun laBibliotecaSeOrdenaComoEnEspanol() = runTest {
         val r = repos()
         r.docs.add(pdf("zebra.pdf", "h1"))
         r.docs.add(pdf("Álgebra.pdf", "h2"))
         r.docs.add(pdf("cálculo.pdf", "h3"))
         r.docs.add(pdf("Biología.pdf", "h4"))
+        r.docs.add(pdf("ñandú.pdf", "h5"))
+        r.docs.add(pdf("nube.pdf", "h6"))
+        r.docs.add(pdf("oso.pdf", "h7"))
         val titulos = r.docs.observeAll().first().map { it.title }
-        assertEquals(listOf("Biología.pdf", "cálculo.pdf", "zebra.pdf"), titulos.filter { it != "Álgebra.pdf" })
+        assertEquals(
+            listOf("Álgebra.pdf", "Biología.pdf", "cálculo.pdf", "nube.pdf", "ñandú.pdf", "oso.pdf", "zebra.pdf"),
+            titulos,
+        )
+    }
+
+    @Test
+    fun laClaveDeOrdenDelDocumentoSeGuardaYSeRecalculaAlReaparecer() = runTest {
+        val r = repos()
+        val doc = r.nuevoDocumento()
+        fun claveGuardada() = db.cuadernoQueries.selectDocumentByHash("aa11").executeAsOne().title_sort
+        assertEquals("apuntes.pdf", claveGuardada())
+        r.docs.delete(doc.meta.id)
+        r.docs.add(pdf(titulo = "Éxamen Ñoño.pdf"))
+        assertEquals(app.cuaderno.model.TitleSort.of("Éxamen Ñoño.pdf"), claveGuardada())
     }
 
     @Test

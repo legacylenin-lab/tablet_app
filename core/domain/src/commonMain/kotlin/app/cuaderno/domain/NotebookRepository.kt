@@ -9,6 +9,9 @@ interface NotebookRepository {
     /** Cuadernos no borrados, en el orden de `sortKey`. Se vuelve a emitir cuando cambian. */
     fun observeAll(): Flow<List<Notebook>>
 
+    /** Cuadernos no borrados en orden alfabético por título, como se lee en español ("Álgebra" antes que "Zebra"). */
+    fun observeAllByTitle(): Flow<List<Notebook>>
+
     suspend fun create(title: String): Notebook
 
     suspend fun rename(id: EntityId, title: String)
