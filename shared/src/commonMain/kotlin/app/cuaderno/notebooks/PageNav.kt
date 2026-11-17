@@ -13,5 +13,8 @@ data class PageNav(val number: Int, val total: Int) {
         fun clampIndex(index: Int, total: Int): Int = index.coerceIn(0, maxOf(0, total - 1))
 
         fun at(index: Int, total: Int) = PageNav(clampIndex(index, total) + 1, maxOf(total, 1))
+
+        /** Posición que queda después de eliminar la página [index] de [total]: la misma, o la anterior si era la última. */
+        fun indexAfterDelete(index: Int, total: Int): Int = clampIndex(index, total - 1)
     }
 }

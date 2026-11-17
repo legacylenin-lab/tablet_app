@@ -36,4 +36,12 @@ class PageNavTest {
         assertFalse(nav.canGoBack)
         assertFalse(nav.canGoForward)
     }
+
+    @Test
+    fun alEliminarSeQuedaEnLaMismaPosicionOEnLaAnteriorSiEraLaUltima() {
+        assertEquals(1, PageNav.indexAfterDelete(1, 4)) // la siguiente ocupa su lugar
+        assertEquals(2, PageNav.indexAfterDelete(3, 4)) // era la última
+        assertEquals(0, PageNav.indexAfterDelete(0, 2))
+        assertEquals(0, PageNav.indexAfterDelete(0, 1))
+    }
 }

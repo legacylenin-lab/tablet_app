@@ -9,7 +9,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -258,12 +260,16 @@ private fun InkPageScreen(
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
-            Row(modifier = Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             if (controls != null) {
-                OutlinedButton(onClick = controls.onPrevious, enabled = controls.nav.canGoBack, modifier = Modifier.padding(end = 8.dp)) { Text("◀") }
-                OutlinedButton(onClick = controls.onNext, enabled = controls.nav.canGoForward, modifier = Modifier.padding(end = 8.dp)) { Text("▶") }
-                OutlinedButton(onClick = controls.onAdd, modifier = Modifier.padding(end = 16.dp)) { Text("Página nueva") }
+                Row(modifier = Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedButton(onClick = controls.onPrevious, enabled = controls.nav.canGoBack, modifier = Modifier.padding(end = 8.dp)) { Text("◀") }
+                    OutlinedButton(onClick = controls.onNext, enabled = controls.nav.canGoForward, modifier = Modifier.padding(end = 8.dp)) { Text("▶") }
+                    OutlinedButton(onClick = controls.onAdd, modifier = Modifier.padding(end = 8.dp)) { Text("Página nueva") }
+                    OutlinedButton(onClick = controls.onDuplicate, modifier = Modifier.padding(end = 8.dp)) { Text("Duplicar") }
+                    OutlinedButton(onClick = controls.onDelete, enabled = controls.nav.total > 1) { Text("Eliminar página") }
+                }
             }
+            Row(modifier = Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             OutlinedButton(onClick = { undo() }, enabled = undoStack.isNotEmpty(), modifier = Modifier.padding(end = 8.dp)) {
                 Text("Deshacer")
             }
@@ -428,7 +434,14 @@ private fun InkPageScreen(
 }
 
 /** Lo que la pantalla de la página necesita para moverse por el cuaderno. */
-private class PageControls(val nav: PageNav, val onPrevious: () -> Unit, val onNext: () -> Unit, val onAdd: () -> Unit)
+private class PageControls(
+    val nav: PageNav,
+    val onPrevious: () -> Unit,
+    val onNext: () -> Unit,
+    val onAdd: () -> Unit,
+    val onDuplicate: () -> Unit,
+    val onDelete: () -> Unit,
+)
 
 /**
  * Las páginas de un cuaderno: muestra una a la vez, con flechas y «Página nueva». Cada página
@@ -439,6 +452,7 @@ private fun NotebookPagesScreen(services: AppServices, notebook: Notebook, modif
     val scope = rememberCoroutineScope()
     val pages by services.pages.observeByNotebook(notebook.meta.id).collectAsState(initial = null)
     var index by remember { mutableIntStateOf(0) }
+    var confirmDelete by remember { mutableStateOf(false) }
 
     // Un cuaderno nuevo no tiene páginas: se le crea la primera.
     LaunchedEffect(pages) {
@@ -452,6 +466,21 @@ private fun NotebookPagesScreen(services: AppServices, notebook: Notebook, modif
     }
     val current = PageNav.clampIndex(index, list.size)
     val currentPage = list[current]
+    if (confirmDelete) {
+        AlertDialog(
+            onDismissRequest = { confirmDelete = false },
+            title = { Text("¿Eliminar la ${PageNav.at(current, list.size).label.lowercase()}?") },
+            text = { Text("La página y lo que escribiste en ella dejarán de verse.") },
+            confirmButton = {
+                Button(onClick = {
+                    confirmDelete = false
+                    index = PageNav.indexAfterDelete(current, list.size)
+                    scope.launch { services.pages.delete(currentPage.meta.id) }
+                }) { Text("Eliminar") }
+            },
+            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Cancelar") } },
+        )
+    }
     key(currentPage.meta.id) {
         InkPageScreen(
             services, notebook, modifier,
@@ -460,6 +489,13 @@ private fun NotebookPagesScreen(services: AppServices, notebook: Notebook, modif
                 nav = PageNav.at(current, list.size),
                 onPrevious = { index = current - 1 },
                 onNext = { index = current + 1 },
+                onDuplicate = {
+                    scope.launch {
+                        services.pages.duplicate(currentPage.meta.id)
+                        index = current + 1
+                    }
+                },
+                onDelete = { confirmDelete = true },
                 onAdd = {
                     scope.launch {
                         services.pages.add(notebook.meta.id, PageTemplate.BLANK, after = currentPage.meta.id)
