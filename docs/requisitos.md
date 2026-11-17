@@ -345,4 +345,4 @@ Se definen en `plan-de-pruebas.md`.
 
 | ID | Fecha | Propuesta | Origen | Impacto | Estado |
 |---|---|---|---|---|---|
-| — | — | — | — | — | — |
+| PC-01 | 18/11/2026 | **Adelantar RF-05 a la v1:** poder combinar en una misma página los trazos a mano y los bloques de texto enriquecido (cuadros de texto sobre la hoja donde también se dibuja). Hoy RF-05 está en el backlog de la v1.x y la v1 solo pide RF-04 (texto en bloques). | Dueño: quiere escribir texto y dibujar en la misma página. | El modelo de datos ya lo soporta (`TextBlock` con página, posición y ancho; repositorio hecho). Cuesta más que páginas de texto aparte: mover y redimensionar bloques, convivir con los gestos del lápiz y del dedo, y el orden en que se dibujan. Estimado: 2 o 3 sesiones más. Encaja en la etapa 4 de la v1. No contradice otras decisiones, salvo mover RF-05 de «Backlog (S)» a la v1. | Pendiente de revisión (Leyni) |
