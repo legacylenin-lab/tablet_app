@@ -34,6 +34,7 @@ Lista breve, para no volver a explicarlos desde cero. Ejemplos: commit, compilar
 - Idea de pruebas automáticas: el asistente las escribe y las ejecuta; el dueño no necesita correrlas.
 - Idea de "borrado suave" (ocultar sin eliminar) y de que cada cambio se anota en un registro; aún no la ha necesitado usar él mismo.
 - Probar en la tablet real: conectada por USB, con la app instalada por el asistente; el dueño la usa con el lápiz y cuenta lo que ve (muy buenas descripciones: dice qué hizo y qué pasó).
+- Crear, renombrar, eliminar y abrir cuadernos, y pasar de página, desde la app (probado en la tablet).
 - Cerrar la app por completo y reabrirla para comprobar que algo se guardó.
 
 ## 3. Lo que funciona y lo que no
@@ -52,6 +53,7 @@ Observaciones acumuladas, cada una con su fecha.
 | 17/11/2026 | Las pruebas en la tablet dieron respuestas muy útiles (por ejemplo, que el borrador no respondía y que el botón del lápiz solo funciona con doble toque), lo que permitió medir en vez de adivinar | Pedirle pasos concretos y numerados para probar en la tablet, y grabar lo que manda el lápiz cuando haga falta |
 | 17/11/2026 | El contexto de la conversación llegó al 60% tras una sesión muy larga (unos 6 commits y mucha lectura de documentación) | Cerrar la sesión y abrir una nueva cada 4 o 5 commits, o antes si el dueño avisa de que el contexto sube. Todo el estado queda en `docs/` para retomarlo con "hola" |
 | 17/11/2026 | Guardó el commit antes de avisar de los errores de la prueba; el arreglo fue un commit nuevo, sin problema | Pedir que cuente el resultado de la prueba antes de guardar; si ya guardó, seguir con un commit de corrección |
+| 17/11/2026 | Con 3 horas disponibles aguantó 9 commits en una conversación; cada paso tuvo su prueba en la tablet, que encontró 3 fallos reales que las pruebas automáticas no veían (memoria con zoom, guardado al cambiar de página) | Mantener el paso pequeño con prueba en la tablet; el texto con teclado (más grande) empieza en sesión nueva. Verificar siempre que la tablet esté autorizada antes de decir "instalada" |
 
 ## 4. Bitácora de sesiones
 
@@ -61,7 +63,7 @@ Se conservan las 10 más recientes; las anteriores se resumen en una línea por 
 |---|---|---|---|---|
 | 16/11/2026 | Sesión larga (varias horas, con una pausa; la duración exacta no se midió) | 1 y 2 | Etapa 1 cerrada (proyecto base en Android y Windows, primer cambio visible). Etapa 2, parte de datos: modelo, HLC, codificación de trazos, claves de orden, base de datos con 6 repositorios y respaldo, con 109 pruebas en verde. 7 commits. | Revisión de `pendientes-a-consultar.md` por Leyni; luego etapa 3 (lienzo con lápiz en la tablet real) |
 | 17/11/2026 | Sesión larga (varias horas) | 2 (ajustes de Leyni) y 3 | Ajustes aprobados por Leyni: minSdk 30, lint, EntityId, TitleSort y prueba del respaldo en el emulador. Etapa 3: prototipo de tinta P-0 en la tablet real con androidx.ink (adoptada), modo borrador con el doble toque del lápiz, trazos guardados en la base de datos con deshacer y rehacer. 6 commits. | Terminar la etapa 3: color y grosor del lápiz, resaltador, y dedo que desplaza y hace zoom |
-| 17/11/2026 (2.ª sesión) | Sesión media | 3 | Barra de herramientas (lápiz, resaltador, 6+4 colores, grosores) con guardado de herramienta, color y grosor; zoom y desplazamiento con el dedo. Dos fallos hallados en la tablet y corregidos: la tinta ignoraba color y tipo; la capa de tinta con zoom agotaba la memoria. Etapa 3 completa. | Etapa 4: cuadernos, páginas y texto |
+| 17/11/2026 (2.ª sesión) | Sesión larga (unas 3 horas) | 3 y 4 | Etapa 3 completa (color, grosor, resaltador, dedo con zoom y desplazamiento). Etapa 4: lista de cuadernos y varias páginas por cuaderno. Fallos hallados en la tablet y corregidos: la tinta ignoraba color y tipo; la capa de tinta con zoom agotaba la memoria; los trazos se perdían al cambiar de página. 9 commits. | Etapa 4: texto con teclado (RF-04); borrar, duplicar y reordenar páginas |
 
 ## 5. Resumen de sesiones anteriores
 
