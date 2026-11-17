@@ -18,6 +18,7 @@
 - **Etapa 3, hasta ahora:** prototipo P-0 con `androidx.ink` 1.0.0 (adoptada); hoja A4 donde solo escribe el lápiz; el doble toque del botón del lápiz alterna lápiz/borrador; los trazos se guardan en la base de datos al soltar el lápiz y se cargan al abrir la app; borrado suave con deshacer y rehacer. Probado a mano en la tablet real (Lenovo TB336ZU, Android 16) y con 7 pruebas instrumentadas.
 - **Barra de herramientas (RF-02), probada en la tablet:** lápiz y resaltador con 6 y 4 colores y varios grosores; cada trazo guarda herramienta, color y grosor y se recarga igual. La librería de tinta pide la brocha vigente en cada trazo (`nextBrush`).
 - **Dedo (RF-03), probado en la tablet:** un dedo desplaza, dos hacen zoom (100% a 500%), el dedo nunca escribe y con el lápiz apoyado se ignora la palma; botón "Ajustar". La capa de tinta mide lo que la pantalla (si midiera lo que la hoja ampliada, la app se quedaba sin memoria).
+- **Etapa 4, cuadernos (RF-01), probado en la tablet:** pantalla "Mis cuadernos" al abrir la app (crear, renombrar, eliminar con borrado suave, abrir); cada cuaderno abre su primera página en el lienzo y conserva sus trazos. Pendiente en la etapa 4: varias páginas por cuaderno y texto.
 
 ## En curso
 - Nada abierto. Si el último commit (guardado de trazos) no aparece en el historial de Git, falta hacerlo.
