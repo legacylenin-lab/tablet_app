@@ -147,6 +147,8 @@
 | CU-05b | Hecho | `core/data/src/androidDeviceTest/.../AndroidBackupTest.kt` (1 prueba, ejecutada el 17/11/2026 en el emulador `Medium_Phone_API_37.0`): `VACUUM INTO` sobre el SQLite real de Android, manifiesto, checksums, copia que se abre y pasa `integrity_check`. Se ejecuta con `./gradlew :core:data:connectedAndroidDeviceTest` con un emulador encendido; no corre en `./gradlew build`. |
 | CU-06 | Hecho | `core/model/.../EntityIdTest.kt` (5 pruebas: parse válido e inválido) y `core/domain/.../RandomIdGeneratorTest.kt` (2 pruebas: 10.000 ids únicos con formato correcto). |
 | CU-07 | Hecho | `core/model/.../TitleSortTest.kt` (9 pruebas; corren en JVM y en el destino Android) y pruebas de orden y recálculo en `SqlNotebookRepositoryTest` (3) y `SqlLibraryRepositoryTest` (2). |
+| CU-08 | Hecho | Persistencia de trazos. `core/data/.../EnsureFirstPageTest.kt` (5 pruebas: primera página al arrancar), `shared/.../InkConversionTest.kt` (8 pruebas: conversión pura de puntos) y `shared/src/androidDeviceTest/.../InkStrokeConverterTest.kt` (7 pruebas instrumentadas, ejecutadas el 17/11/2026 en la tablet Lenovo TB336ZU: trazo de tinta → bytes guardados → trazo reconstruido, con presión, trazo de un punto y datos dañados). Se ejecutan con `./gradlew :shared:connectedAndroidDeviceTest` con un dispositivo conectado. |
+| CP-02 (parcial) | Probado a mano | 17/11/2026, tablet real: escribir con el lápiz, cerrar la app por completo y reabrirla conserva los trazos tal como estaban; el borrado también persiste; deshacer y rehacer funcionan. Falta probar color y grosor seleccionables (RF-02). |
 
 Además: `EntitiesTest.kt` (8 pruebas) cubre los metadatos comunes y el borrado suave.
 

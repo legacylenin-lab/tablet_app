@@ -32,6 +32,7 @@ androidx-activity-compose = { module = "androidx.activity:activity-compose", ver
 compose-uiTooling = { module = "org.jetbrains.compose.ui:ui-tooling", version.ref = "composeMultiplatform" }
 androidx-ink-authoringCompose = { module = "androidx.ink:ink-authoring-compose", version.ref = "androidx-ink" }
 androidx-ink-brush = { module = "androidx.ink:ink-brush", version.ref = "androidx-ink" }
+androidx-ink-geometry = { module = "androidx.ink:ink-geometry", version.ref = "androidx-ink" }
 androidx-ink-rendering = { module = "androidx.ink:ink-rendering", version.ref = "androidx-ink" }
 androidx-ink-strokes = { module = "androidx.ink:ink-strokes", version.ref = "androidx-ink" }
 androidx-lifecycle-viewmodelCompose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "androidx-lifecycle" }

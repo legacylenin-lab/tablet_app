@@ -10,12 +10,14 @@ import androidx.compose.ui.tooling.preview.Preview
 import app.cuaderno.ink.PenButton
 
 class MainActivity : ComponentActivity() {
+    private val container by lazy { AppContainer(applicationContext) }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
         setContent {
-            App()
+            App(container.services)
         }
     }
 

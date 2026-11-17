@@ -12,6 +12,9 @@ kotlin {
 }
 dependencies {
     implementation(project(":shared"))
+    // Solo para armar las dependencias (AppContainer): la interfaz no usa la base de datos directamente.
+    implementation(project(":core:data"))
+    implementation(libs.sqldelight.runtime)
 
     implementation(libs.androidx.activity.compose)
 

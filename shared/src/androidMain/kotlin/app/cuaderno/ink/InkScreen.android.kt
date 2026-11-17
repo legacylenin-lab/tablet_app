@@ -3,11 +3,13 @@ package app.cuaderno.ink
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -18,6 +20,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -27,6 +30,7 @@ import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.ink.authoring.compose.InProgressStrokes
 import androidx.ink.brush.Brush
@@ -34,9 +38,17 @@ import androidx.ink.brush.StockBrushes
 import androidx.ink.rendering.android.canvas.CanvasStrokeRenderer
 import androidx.ink.strokes.Stroke
 import androidx.ink.strokes.StrokeInput
+import app.cuaderno.AppServices
+import app.cuaderno.domain.EnsureFirstPage
+import app.cuaderno.model.EntityId
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import androidx.compose.ui.graphics.Matrix as ComposeMatrix
 
 @Composable
-actual fun InkPrototypeScreen(modifier: Modifier) {
+actual fun InkPrototypeScreen(services: AppServices?, modifier: Modifier) {
     var useInk by remember { mutableStateOf(true) }
     Column(modifier = modifier.fillMaxSize()) {
         Row(
@@ -45,47 +57,165 @@ actual fun InkPrototypeScreen(modifier: Modifier) {
         ) {
             Text("Motor de tinta:", style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(end = 8.dp))
             if (useInk) {
-                Button(onClick = {}) { Text("androidx.ink (baja latencia)") }
-                OutlinedButton(onClick = { useInk = false }, modifier = Modifier.padding(start = 8.dp)) { Text("Solo Compose") }
+                Button(onClick = {}) { Text("androidx.ink (guarda los trazos)") }
+                OutlinedButton(onClick = { useInk = false }, modifier = Modifier.padding(start = 8.dp)) { Text("Solo Compose (no guarda)") }
             } else {
-                OutlinedButton(onClick = { useInk = true }) { Text("androidx.ink (baja latencia)") }
-                Button(onClick = {}, modifier = Modifier.padding(start = 8.dp)) { Text("Solo Compose") }
+                OutlinedButton(onClick = { useInk = true }) { Text("androidx.ink (guarda los trazos)") }
+                Button(onClick = {}, modifier = Modifier.padding(start = 8.dp)) { Text("Solo Compose (no guarda)") }
             }
         }
-        if (useInk) InkLowLatencyScreen(Modifier.weight(1f)) else ComposeInkScreen(Modifier.weight(1f))
+        if (useInk) InkPageScreen(services, Modifier.weight(1f)) else ComposeInkScreen(Modifier.weight(1f))
     }
 }
 
-private const val BRUSH_SIZE = 3f
-private const val BRUSH_EPSILON = 0.1f
-private const val ERASER_RADIUS = 28f
+/** Medidas de la página A4 en el "mundo" de la tinta: décimas de milímetro (docs/arquitectura.md §3.4). */
+private const val PAGE_WIDTH_UNITS = 2100f
+private const val PAGE_HEIGHT_UNITS = 2970f
+
+/** Grosor base del lápiz en esas mismas unidades (4 unidades = 0,4 mm). La fidelidad está en `InkStrokeConverter`. */
+private const val BRUSH_SIZE_UNITS = 4f
+
+private const val ERASER_RADIUS_PX = 28f
+
+/** Un trazo en pantalla. [id] se completa cuando la base de datos lo guardó (los cargados ya lo traen). */
+private class DrawnStroke(val id: CompletableDeferred<EntityId>, val ink: Stroke) {
+    var visible by mutableStateOf(true)
+
+    /** Puntos del trazo para saber si el borrador lo toca. Se calculan una sola vez. */
+    val points: List<InkPoint> by lazy {
+        val scratch = StrokeInput()
+        List(ink.inputs.size) { i ->
+            ink.inputs.populate(i, scratch)
+            InkPoint(scratch.x, scratch.y, 1f)
+        }
+    }
+
+    suspend fun idOrNull(): EntityId? = try {
+        id.await()
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        null
+    }
+}
+
+private enum class ActionKind { DRAW, ERASE }
+
+/** Algo que hizo el usuario y se puede deshacer o rehacer: dibujar o borrar uno o varios trazos. */
+private class UserAction(val kind: ActionKind, val strokes: List<DrawnStroke>)
 
 /**
- * Pizarra con `androidx.ink`: el trazo en curso se dibuja directo en pantalla con predicción de
- * movimiento (baja latencia). Solo el lápiz escribe; el dedo se consume antes de llegar a la tinta (RF-03).
- * El modo borrador (botón en pantalla o botón del lápiz) borra los trazos que toque.
+ * Hoja A4 donde escribe el lápiz con `androidx.ink`. Cada trazo se guarda en la base de datos al
+ * soltar el lápiz y se vuelve a cargar al abrir la app. Borrar y deshacer usan el borrado suave.
+ * Solo el lápiz escribe; el dedo se descarta antes de llegar a la tinta (RF-03).
  */
 @Composable
-private fun InkLowLatencyScreen(modifier: Modifier = Modifier) {
-    val finished = remember { mutableStateListOf<Stroke>() }
+private fun InkPageScreen(services: AppServices?, modifier: Modifier = Modifier) {
+    val scope = rememberCoroutineScope()
+    val strokes = remember { mutableStateListOf<DrawnStroke>() }
+    val undoStack = remember { mutableStateListOf<UserAction>() }
+    val redoStack = remember { mutableStateListOf<UserAction>() }
+    var pageId by remember { mutableStateOf<EntityId?>(null) }
+    var loaded by remember { mutableStateOf(services == null) }
+    var message by remember { mutableStateOf<String?>(null) }
+    var eraserMode by remember { mutableStateOf(false) }
+    var lastDevice by remember { mutableStateOf("ninguno todavía") }
+
     val brush = remember {
         Brush.createWithColorIntArgb(
             family = StockBrushes.pressurePen(),
             colorIntArgb = 0xFF000000.toInt(),
-            size = BRUSH_SIZE,
-            epsilon = BRUSH_EPSILON,
+            size = BRUSH_SIZE_UNITS,
+            epsilon = BRUSH_EPSILON_UNITS,
         )
     }
     val renderer = remember { CanvasStrokeRenderer.create() }
-    val identity = remember { android.graphics.Matrix() }
 
-    var penDowns by remember { mutableStateOf(0) }
-    var fingerDowns by remember { mutableStateOf(0) }
-    var eraseEvents by remember { mutableStateOf(0) }
-    var lastDevice by remember { mutableStateOf("ninguno todavía") }
-    var eraserMode by remember { mutableStateOf(false) }
     // Cada pulsación del botón del lápiz alterna entre lápiz y borrador.
     LaunchedEffect(PenButton.clicks) { if (PenButton.clicks > 0) eraserMode = !eraserMode }
+
+    // Al abrir: encontrar (o crear) la primera página y cargar sus trazos.
+    LaunchedEffect(services) {
+        if (services == null) return@LaunchedEffect
+        try {
+            val page = EnsureFirstPage(services.notebooks, services.pages)()
+            pageId = page.meta.id
+            for (saved in services.ink.observeStrokes(page.meta.id).first()) {
+                val ink = saved.toInkStroke() ?: continue
+                strokes += DrawnStroke(CompletableDeferred(saved.meta.id), ink)
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            message = "No se pudo abrir la página: ${e.message}"
+        }
+        loaded = true
+    }
+
+    fun pushAction(action: UserAction) {
+        undoStack += action
+        redoStack.clear()
+    }
+
+    fun persistVisibility(targets: List<DrawnStroke>, visible: Boolean) {
+        val s = services ?: return
+        scope.launch {
+            try {
+                val ids = targets.mapNotNull { it.idOrNull() }
+                if (visible) s.ink.restore(ids) else s.ink.erase(ids)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                message = "No se pudo guardar el cambio: ${e.message}"
+            }
+        }
+    }
+
+    fun persistNew(drawn: List<DrawnStroke>) {
+        val s = services
+        val page = pageId
+        scope.launch {
+            for (d in drawn) {
+                try {
+                    val newStroke = d.ink.toNewStroke() ?: throw IllegalStateException("trazo vacío")
+                    if (s == null || page == null) throw IllegalStateException("la página no está lista")
+                    d.id.complete(s.ink.add(page, newStroke).meta.id)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    d.id.completeExceptionally(e)
+                    if (s != null) message = "No se pudo guardar un trazo: ${e.message}"
+                }
+            }
+        }
+    }
+
+    fun applyAction(action: UserAction, undo: Boolean) {
+        // Deshacer un dibujo lo oculta; rehacerlo lo muestra. Con un borrado, al revés.
+        val show = (action.kind == ActionKind.DRAW) != undo
+        for (d in action.strokes) d.visible = show
+        persistVisibility(action.strokes, show)
+    }
+
+    fun undo() {
+        val action = undoStack.removeLastOrNull() ?: return
+        applyAction(action, undo = true)
+        redoStack += action
+    }
+
+    fun redo() {
+        val action = redoStack.removeLastOrNull() ?: return
+        applyAction(action, undo = false)
+        undoStack += action
+    }
+
+    fun clearPage() {
+        val targets = strokes.filter { it.visible }
+        if (targets.isEmpty()) return
+        for (d in targets) d.visible = false
+        pushAction(UserAction(ActionKind.ERASE, targets))
+        persistVisibility(targets, false)
+    }
 
     Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant)) {
         Row(
@@ -93,76 +223,110 @@ private fun InkLowLatencyScreen(modifier: Modifier = Modifier) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("Pizarra con androidx.ink: dibuja con el lápiz", style = MaterialTheme.typography.titleMedium)
+                Text("Página 1 · Mi primer cuaderno", style = MaterialTheme.typography.titleMedium)
                 Text(
-                    "Trazos: ${finished.size}  ·  Lápiz apoyado: $penDowns veces  ·  Dedo (no dibuja): $fingerDowns  ·  " +
-                        "Borrando: $eraseEvents  ·  Último: $lastDevice  ·  Botón del lápiz: ${PenButton.clicks} pulsaciones",
+                    when {
+                        message != null -> message!!
+                        !loaded -> "Abriendo la página…"
+                        services == null -> "Sin guardado (no hay base de datos)"
+                        else -> "Trazos: ${strokes.count { it.visible }}  ·  Guardados en la base de datos  ·  " +
+                            "Último: $lastDevice  ·  Botón del lápiz: ${PenButton.clicks} pulsaciones"
+                    },
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
             OutlinedButton(onClick = { eraserMode = !eraserMode }, modifier = Modifier.padding(end = 8.dp)) {
                 Text(if (eraserMode) "Modo: BORRADOR" else "Modo: LÁPIZ")
             }
-            Button(onClick = { finished.clear() }) { Text("Limpiar") }
+            OutlinedButton(onClick = { undo() }, enabled = undoStack.isNotEmpty(), modifier = Modifier.padding(end = 8.dp)) {
+                Text("Deshacer")
+            }
+            OutlinedButton(onClick = { redo() }, enabled = redoStack.isNotEmpty(), modifier = Modifier.padding(end = 8.dp)) {
+                Text("Rehacer")
+            }
+            Button(onClick = { clearPage() }) { Text("Limpiar") }
         }
 
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .background(Color.White)
-                // Se ejecuta ANTES (pasada Initial) que la tinta: lo que se consume aquí, la tinta no lo dibuja.
-                .pointerInput(Unit) {
-                    val scratch = StrokeInput()
-                    awaitPointerEventScope {
-                        while (true) {
-                            val event = awaitPointerEvent(PointerEventPass.Initial)
-                            for (change in event.changes) {
-                                lastDevice = when (change.type) {
-                                    PointerType.Stylus -> "lápiz"
-                                    PointerType.Eraser -> "borrador"
-                                    PointerType.Touch -> "dedo"
-                                    PointerType.Mouse -> "ratón"
-                                    else -> "desconocido"
-                                }
-                                val newlyDown = change.pressed && !change.previousPressed
-                                when (inputActionFor(change.type, eraserMode)) {
-                                    InputAction.DRAW -> if (newlyDown) penDowns++
-                                    InputAction.ERASE -> {
-                                        change.consume()
-                                        if (change.pressed) {
-                                            eraseEvents++
-                                            finished.removeAll { stroke ->
-                                                val points = List(stroke.inputs.size) { i ->
-                                                    stroke.inputs.populate(i, scratch)
-                                                    InkPoint(scratch.x, scratch.y, 1f)
+        BoxWithConstraints(
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+            contentAlignment = Alignment.Center,
+        ) {
+            // La hoja A4 se ajusta al espacio disponible. `scale` son píxeles por unidad del mundo.
+            val scale = minOf(constraints.maxWidth / PAGE_WIDTH_UNITS, constraints.maxHeight / PAGE_HEIGHT_UNITS)
+            val density = LocalDensity.current
+            val pageWidth = with(density) { (PAGE_WIDTH_UNITS * scale).toDp() }
+            val pageHeight = with(density) { (PAGE_HEIGHT_UNITS * scale).toDp() }
+            val strokeToScreen = remember(scale) { android.graphics.Matrix().apply { setScale(scale, scale) } }
+            val screenToWorld = remember(scale) { ComposeMatrix().apply { scale(1f / scale, 1f / scale) } }
+
+            Box(
+                modifier = Modifier
+                    .size(pageWidth, pageHeight)
+                    .background(Color.White)
+                    // Se ejecuta ANTES (pasada Initial) que la tinta: lo que se consume aquí, la tinta no lo dibuja.
+                    .pointerInput(scale) {
+                        val gesture = mutableListOf<DrawnStroke>()
+                        awaitPointerEventScope {
+                            while (true) {
+                                val event = awaitPointerEvent(PointerEventPass.Initial)
+                                for (change in event.changes) {
+                                    lastDevice = when (change.type) {
+                                        PointerType.Stylus -> "lápiz"
+                                        PointerType.Eraser -> "borrador"
+                                        PointerType.Touch -> "dedo"
+                                        PointerType.Mouse -> "ratón"
+                                        else -> "desconocido"
+                                    }
+                                    when (inputActionFor(change.type, eraserMode)) {
+                                        InputAction.DRAW -> Unit
+                                        InputAction.ERASE -> {
+                                            change.consume()
+                                            if (change.pressed) {
+                                                val x = change.position.x / scale
+                                                val y = change.position.y / scale
+                                                for (d in strokes) {
+                                                    if (d.visible && InkMath.isNear(d.points, x, y, ERASER_RADIUS_PX / scale)) {
+                                                        d.visible = false
+                                                        gesture += d
+                                                    }
                                                 }
-                                                InkMath.isNear(points, change.position.x, change.position.y, ERASER_RADIUS)
+                                            } else if (change.previousPressed && gesture.isNotEmpty()) {
+                                                val action = UserAction(ActionKind.ERASE, gesture.toList())
+                                                gesture.clear()
+                                                pushAction(action)
+                                                persistVisibility(action.strokes, false)
                                             }
                                         }
+                                        InputAction.NAVIGATE, InputAction.IGNORE -> change.consume()
                                     }
-                                    InputAction.NAVIGATE -> {
-                                        change.consume()
-                                        if (newlyDown) fingerDowns++
-                                    }
-                                    InputAction.IGNORE -> change.consume()
                                 }
                             }
                         }
+                    },
+            ) {
+                // Trazos terminados (con la página ajustada a la pantalla).
+                Canvas(Modifier.fillMaxSize()) {
+                    drawIntoCanvas { canvas ->
+                        val native = canvas.nativeCanvas
+                        native.save()
+                        native.concat(strokeToScreen)
+                        for (d in strokes) if (d.visible) renderer.draw(native, d.ink, strokeToScreen)
+                        native.restore()
                     }
-                },
-        ) {
-            // Trazos terminados.
-            Canvas(Modifier.fillMaxSize()) {
-                drawIntoCanvas { canvas ->
-                    for (stroke in finished) renderer.draw(canvas.nativeCanvas, stroke, identity)
                 }
+                // Trazo en curso, con baja latencia. Al terminar, pasa a la lista de arriba y se guarda.
+                InProgressStrokes(
+                    defaultBrush = if (loaded) brush else null,
+                    pointerEventToWorldTransform = screenToWorld,
+                    onStrokesFinished = { finished ->
+                        val drawn = finished.map { DrawnStroke(CompletableDeferred(), it) }
+                        strokes.addAll(drawn)
+                        pushAction(UserAction(ActionKind.DRAW, drawn))
+                        persistNew(drawn)
+                    },
+                )
             }
-            // Trazo en curso, con baja latencia. Al terminar, pasa a la lista de arriba.
-            InProgressStrokes(
-                defaultBrush = brush,
-                onStrokesFinished = { strokes -> finished.addAll(strokes) },
-            )
         }
     }
 }
+

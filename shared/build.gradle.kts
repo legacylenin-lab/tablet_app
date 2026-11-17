@@ -34,6 +34,7 @@ kotlin {
             // Tinta de baja latencia (P-0). Solo Android: en la PC no se dibuja.
             implementation(libs.androidx.ink.authoringCompose)
             implementation(libs.androidx.ink.brush)
+            implementation(libs.androidx.ink.geometry)
             implementation(libs.androidx.ink.rendering)
             implementation(libs.androidx.ink.strokes)
             implementation(libs.compose.uiTooling)
