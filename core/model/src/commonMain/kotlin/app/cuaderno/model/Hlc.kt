@@ -5,12 +5,12 @@ package app.cuaderno.model
  * relojes no coincidan. Ver docs/arquitectura.md §4.
  *
  * Orden: primero [wallMillis], luego [counter], luego [deviceId]. Nunca hay empates.
- * [deviceId] es el identificador (UUID en texto) del dispositivo que emitió el valor.
+ * [deviceId] es el identificador del dispositivo que emitió el valor.
  */
 data class Hlc(
     val wallMillis: Long,
     val counter: Int,
-    val deviceId: String,
+    val deviceId: EntityId,
 ) : Comparable<Hlc> {
 
     init {
@@ -21,7 +21,7 @@ data class Hlc(
     override fun compareTo(other: Hlc): Int {
         if (wallMillis != other.wallMillis) return wallMillis.compareTo(other.wallMillis)
         if (counter != other.counter) return counter.compareTo(other.counter)
-        return deviceId.compareTo(other.deviceId)
+        return deviceId.value.compareTo(other.deviceId.value)
     }
 
     /**
@@ -31,7 +31,7 @@ data class Hlc(
      */
     fun toText(): String =
         wallMillis.toString().padStart(WALL_DIGITS, '0') + "-" +
-            counter.toString(16).padStart(COUNTER_DIGITS, '0') + "-" + deviceId
+            counter.toString(16).padStart(COUNTER_DIGITS, '0') + "-" + deviceId.value
 
     companion object {
         const val WALL_DIGITS = 15
@@ -49,7 +49,7 @@ data class Hlc(
             val wall = text.substring(0, WALL_DIGITS).toLongOrNull()
             val counter = text.substring(WALL_DIGITS + 1, WALL_DIGITS + 1 + COUNTER_DIGITS).toIntOrNull(16)
             require(wall != null && counter != null) { "HLC inválido: $text" }
-            return Hlc(wall, counter, text.substring(WALL_DIGITS + 1 + COUNTER_DIGITS + 1))
+            return Hlc(wall, counter, EntityId.parse(text.substring(WALL_DIGITS + 1 + COUNTER_DIGITS + 1)))
         }
     }
 }
@@ -61,7 +61,7 @@ data class Hlc(
  * Esta clase no lee el reloj: recibe la hora actual como parámetro, para poder probarla.
  */
 class HlcClock(
-    private val deviceId: String,
+    private val deviceId: EntityId,
     initial: Hlc? = null,
 ) {
     var last: Hlc = initial ?: Hlc(0, 0, deviceId)

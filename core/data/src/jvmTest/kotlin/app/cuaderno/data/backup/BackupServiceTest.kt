@@ -3,7 +3,9 @@ package app.cuaderno.data.backup
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import app.cuaderno.data.DataContext
 import app.cuaderno.data.SqlNotebookRepository
+import app.cuaderno.data.SequentialIdGenerator
 import app.cuaderno.data.db.CuadernoDatabase
+import app.cuaderno.data.testId
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -43,7 +45,7 @@ class BackupServiceTest {
         snapshotter = SqlDriverSnapshotter(driver),
         documentsDir = documentsDir,
         workDir = workDir,
-        deviceId = "dev-1",
+        deviceId = testId(1),
         appVersion = "0.1.0",
         schemaVersion = schema,
         nowMillis = { now++ },
@@ -114,7 +116,7 @@ class BackupServiceTest {
         val m = BackupFormat.json.decodeFromString(BackupManifest.serializer(), lista[0].second.decodeToString())
         assertEquals(1, m.formatVersion)
         assertEquals("0.1.0", m.appVersion)
-        assertEquals("dev-1", m.deviceId)
+        assertEquals(testId(1).value, m.deviceId)
         assertEquals(schemaVersion, m.schemaVersion)
         assertEquals(1, m.documentCount)
         assertEquals(setOf("database.sqlite", "documents/$hash.pdf"), m.checksums.keys)
@@ -195,7 +197,7 @@ class BackupServiceTest {
     fun idaYVueltaConservaLosDatosYLosDocumentos() = runTest {
         // Datos reales en la base de datos.
         val repo = SqlNotebookRepository(
-            DataContext(db, "dev-1", "yo") { now++ },
+            DataContext(db, testId(1), testId(2), SequentialIdGenerator()) { now++ },
             StandardTestDispatcher(testScheduler),
         )
         repo.create("Cálculo")

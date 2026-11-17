@@ -6,9 +6,9 @@ import app.cuaderno.domain.AnnotationRepository
 import app.cuaderno.domain.NewAnnotation
 import app.cuaderno.model.Annotation
 import app.cuaderno.model.AnnotationKind
+import app.cuaderno.model.EntityId
 import app.cuaderno.model.Hlc
 import app.cuaderno.model.Meta
-import app.cuaderno.model.newId
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -22,14 +22,14 @@ class SqlAnnotationRepository(
 
     private val queries get() = ctx.db.cuadernoQueries
 
-    override fun observe(documentId: String, pageIndex: Int): Flow<List<Annotation>> =
-        queries.selectAnnotationsByDocPage(documentId, pageIndex.toLong()).asFlow().mapToList(dispatcher)
+    override fun observe(documentId: EntityId, pageIndex: Int): Flow<List<Annotation>> =
+        queries.selectAnnotationsByDocPage(documentId.value, pageIndex.toLong()).asFlow().mapToList(dispatcher)
             .map { rows -> rows.map { it.toModel() } }
 
-    override suspend fun add(documentId: String, pageIndex: Int, annotation: NewAnnotation): Annotation =
+    override suspend fun add(documentId: EntityId, pageIndex: Int, annotation: NewAnnotation): Annotation =
         withContext(dispatcher) {
             ctx.db.transactionWithResult {
-                val document = requireNotNull(queries.selectDocumentById(documentId).executeAsOneOrNull()) {
+                val document = requireNotNull(queries.selectDocumentById(documentId.value).executeAsOneOrNull()) {
                     "No existe el documento: $documentId"
                 }
                 require(pageIndex in 0 until maxOf(document.page_count.toInt(), 1)) {
@@ -37,7 +37,7 @@ class SqlAnnotationRepository(
                 }
                 val hlc = ctx.nextHlc()
                 val created = Annotation(
-                    meta = Meta.created(newId(), hlc, ctx.authorId),
+                    meta = Meta.created(ctx.ids.newId(), hlc, ctx.authorId),
                     documentId = documentId,
                     pageIndex = pageIndex,
                     kind = annotation.kind,
@@ -49,7 +49,7 @@ class SqlAnnotationRepository(
             }
         }
 
-    override suspend fun erase(ids: List<String>) {
+    override suspend fun erase(ids: List<EntityId>) {
         withContext(dispatcher) {
             ctx.db.transaction {
                 for (id in ids) {
@@ -62,7 +62,7 @@ class SqlAnnotationRepository(
         }
     }
 
-    override suspend fun restore(ids: List<String>) {
+    override suspend fun restore(ids: List<EntityId>) {
         withContext(dispatcher) {
             ctx.db.transaction {
                 for (id in ids) {
@@ -76,8 +76,8 @@ class SqlAnnotationRepository(
         }
     }
 
-    private fun find(id: String): Annotation =
-        queries.selectAnnotationAnyById(id).executeAsOneOrNull()?.toModel()
+    private fun find(id: EntityId): Annotation =
+        queries.selectAnnotationAnyById(id.value).executeAsOneOrNull()?.toModel()
             ?: throw IllegalArgumentException("No existe la anotación: $id")
 
     private fun Annotation.withMeta(meta: Meta) = Annotation(meta, documentId, pageIndex, kind, colorArgb, geometry)
@@ -85,16 +85,16 @@ class SqlAnnotationRepository(
     /** Escribe la fila y su registro en `change_log`. Siempre dentro de una transacción. */
     private fun save(a: Annotation, hlc: Hlc, op: ChangeOp) {
         queries.upsertAnnotation(
-            id = a.meta.id,
-            document_id = a.documentId,
+            id = a.meta.id.value,
+            document_id = a.documentId.value,
             page_index = a.pageIndex.toLong(),
             kind = a.kind.name,
             color = a.colorArgb.toLong(),
             geometry = a.geometry,
             created_hlc = a.meta.createdHlc.toText(),
             updated_hlc = a.meta.updatedHlc.toText(),
-            device_id = a.meta.deviceId,
-            author_id = a.meta.authorId,
+            device_id = a.meta.deviceId.value,
+            author_id = a.meta.authorId.value,
             deleted_hlc = a.meta.deletedHlc?.toText(),
         )
         ctx.logChange("annotation", a.meta.id, op, hlc)
@@ -102,14 +102,14 @@ class SqlAnnotationRepository(
 
     private fun AnnotationRow.toModel() = Annotation(
         meta = Meta(
-            id = id,
+            id = EntityId.parse(id),
             createdHlc = Hlc.parse(created_hlc),
             updatedHlc = Hlc.parse(updated_hlc),
-            deviceId = device_id,
-            authorId = author_id,
+            deviceId = EntityId.parse(device_id),
+            authorId = EntityId.parse(author_id),
             deletedHlc = deleted_hlc?.let(Hlc::parse),
         ),
-        documentId = document_id,
+        documentId = EntityId.parse(document_id),
         pageIndex = page_index.toInt(),
         kind = AnnotationKind.valueOf(kind),
         colorArgb = color.toInt(),

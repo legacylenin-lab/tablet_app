@@ -2,6 +2,7 @@ package app.cuaderno.data
 
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import app.cuaderno.data.db.CuadernoDatabase
+import app.cuaderno.model.EntityId
 import app.cuaderno.model.PageTemplate
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -19,28 +20,29 @@ class SqlPageRepositoryTest {
     private val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY).also { CuadernoDatabase.Schema.create(it) }
     private val db = CuadernoDatabase(driver)
     private var now = 1_000L
+    private val ids = SequentialIdGenerator()
 
     private class Repos(val notebooks: SqlNotebookRepository, val pages: SqlPageRepository)
 
     private fun TestScope.repos(): Repos {
-        val ctx = DataContext(db, deviceId = "dev-1", authorId = "yo", nowMillis = { now++ })
+        val ctx = DataContext(db, deviceId = testId(1), authorId = testId(2), ids = ids, nowMillis = { now++ })
         val dispatcher = StandardTestDispatcher(testScheduler)
         return Repos(SqlNotebookRepository(ctx, dispatcher), SqlPageRepository(ctx, dispatcher))
     }
 
     private fun changes() = db.cuadernoQueries.selectChanges().executeAsList()
 
-    private fun addStroke(pageId: String, byte: Byte) {
+    private fun addStroke(pageId: EntityId, byte: Byte) {
         db.cuadernoQueries.upsertStroke(
-            "stroke-$byte-$pageId", pageId, "PEN", 0xFF000000, 2.5, byteArrayOf(byte),
-            "001-0000-x", "001-0000-x", "dev-1", "yo", null,
+            testId(5000 + byte).value, pageId.value, "PEN", 0xFF000000, 2.5, byteArrayOf(byte),
+            "001-0000-x", "001-0000-x", testId(1).value, testId(2).value, null,
         )
     }
 
-    private fun addText(pageId: String, text: String) {
+    private fun addText(pageId: EntityId, text: String) {
         db.cuadernoQueries.upsertTextBlock(
-            "text-$text-$pageId", pageId, 100, 200, 800, text, "001-0000-x",
-            "001-0000-x", "001-0000-x", "dev-1", "yo", null,
+            testId(6000 + text.length).value, pageId.value, 100, 200, 800, text, "001-0000-x",
+            "001-0000-x", "001-0000-x", testId(1).value, testId(2).value, null,
         )
     }
 
@@ -130,14 +132,14 @@ class SqlPageRepositoryTest {
         assertEquals(listOf(a.meta.id, copia.meta.id, b.meta.id), r.pages.observeByNotebook(n).first().map { it.meta.id })
         assertNotEquals(a.meta.id, copia.meta.id)
         assertEquals(PageTemplate.GRID, copia.template)
-        val trazos = db.cuadernoQueries.selectStrokesByPage(copia.meta.id).executeAsList()
+        val trazos = db.cuadernoQueries.selectStrokesByPage(copia.meta.id.value).executeAsList()
         assertEquals(2, trazos.size)
         assertContentEquals(listOf<Byte>(1, 2), trazos.map { it.points[0] })
-        val textos = db.cuadernoQueries.selectTextBlocksByPage(copia.meta.id).executeAsList()
+        val textos = db.cuadernoQueries.selectTextBlocksByPage(copia.meta.id.value).executeAsList()
         assertEquals(listOf("hola"), textos.map { it.content })
         // La original conserva su contenido, y las copias tienen identificadores propios.
-        assertEquals(2, db.cuadernoQueries.selectStrokesByPage(a.meta.id).executeAsList().size)
-        val todos = trazos.map { it.id } + db.cuadernoQueries.selectStrokesByPage(a.meta.id).executeAsList().map { it.id }
+        assertEquals(2, db.cuadernoQueries.selectStrokesByPage(a.meta.id.value).executeAsList().size)
+        val todos = trazos.map { it.id } + db.cuadernoQueries.selectStrokesByPage(a.meta.id.value).executeAsList().map { it.id }
         assertEquals(4, todos.toSet().size)
     }
 
@@ -171,11 +173,11 @@ class SqlPageRepositoryTest {
         val n = r.notebooks.create("N").meta.id
         val a = r.pages.add(n, PageTemplate.BLANK, null)
         val antes = changes().size
-        assertFailsWith<IllegalArgumentException> { r.pages.add("no-existe", PageTemplate.BLANK, null) }
-        assertFailsWith<IllegalArgumentException> { r.pages.add(n, PageTemplate.BLANK, after = "no-existe") }
-        assertFailsWith<IllegalArgumentException> { r.pages.move(a.meta.id, after = "no-existe") }
-        assertFailsWith<IllegalArgumentException> { r.pages.duplicate("no-existe") }
-        assertFailsWith<IllegalArgumentException> { r.pages.delete("no-existe") }
+        assertFailsWith<IllegalArgumentException> { r.pages.add(unknownId, PageTemplate.BLANK, null) }
+        assertFailsWith<IllegalArgumentException> { r.pages.add(n, PageTemplate.BLANK, after = unknownId) }
+        assertFailsWith<IllegalArgumentException> { r.pages.move(a.meta.id, after = unknownId) }
+        assertFailsWith<IllegalArgumentException> { r.pages.duplicate(unknownId) }
+        assertFailsWith<IllegalArgumentException> { r.pages.delete(unknownId) }
         assertEquals(antes, changes().size)
     }
 

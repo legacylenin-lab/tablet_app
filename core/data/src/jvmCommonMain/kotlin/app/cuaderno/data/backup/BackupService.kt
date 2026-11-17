@@ -1,6 +1,7 @@
 package app.cuaderno.data.backup
 
 import app.cash.sqldelight.db.SqlDriver
+import app.cuaderno.model.EntityId
 import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
@@ -30,7 +31,7 @@ class BackupService(
     private val snapshotter: DatabaseSnapshotter,
     private val documentsDir: File,
     private val workDir: File,
-    private val deviceId: String,
+    private val deviceId: EntityId,
     private val appVersion: String,
     private val schemaVersion: Int,
     private val nowMillis: () -> Long,
@@ -52,7 +53,7 @@ class BackupService(
                 formatVersion = BackupFormat.FORMAT_VERSION,
                 appVersion = appVersion,
                 createdAtMillis = nowMillis(),
-                deviceId = deviceId,
+                deviceId = deviceId.value,
                 schemaVersion = schemaVersion,
                 documentCount = documents.size,
                 checksums = checksums,

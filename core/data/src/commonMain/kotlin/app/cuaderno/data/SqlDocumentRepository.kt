@@ -6,9 +6,9 @@ import app.cuaderno.domain.AddDocumentResult
 import app.cuaderno.domain.DocumentRepository
 import app.cuaderno.domain.NewDocument
 import app.cuaderno.model.Document
+import app.cuaderno.model.EntityId
 import app.cuaderno.model.Hlc
 import app.cuaderno.model.Meta
-import app.cuaderno.model.newId
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -46,7 +46,7 @@ class SqlDocumentRepository(
                 else -> {
                     val hlc = ctx.nextHlc()
                     val created = Document(
-                        meta = Meta.created(newId(), hlc, ctx.authorId),
+                        meta = Meta.created(ctx.ids.newId(), hlc, ctx.authorId),
                         title = newDocument.title,
                         fileHash = newDocument.fileHash,
                         pageCount = newDocument.pageCount,
@@ -59,7 +59,7 @@ class SqlDocumentRepository(
         }
     }
 
-    override suspend fun setLastReadPage(id: String, page: Int) {
+    override suspend fun setLastReadPage(id: EntityId, page: Int) {
         withContext(dispatcher) {
             ctx.db.transaction {
                 val current = find(id)
@@ -73,7 +73,7 @@ class SqlDocumentRepository(
         }
     }
 
-    override suspend fun delete(id: String) {
+    override suspend fun delete(id: EntityId) {
         withContext(dispatcher) {
             ctx.db.transaction {
                 val current = find(id)
@@ -83,14 +83,14 @@ class SqlDocumentRepository(
         }
     }
 
-    private fun find(id: String): Document =
-        queries.selectDocumentById(id).executeAsOneOrNull()?.toModel()
+    private fun find(id: EntityId): Document =
+        queries.selectDocumentById(id.value).executeAsOneOrNull()?.toModel()
             ?: throw IllegalArgumentException("No existe el documento: $id")
 
     /** Escribe la fila y su registro en `change_log`. Siempre dentro de una transacción. */
     private fun save(d: Document, hlc: Hlc, op: ChangeOp) {
         queries.upsertDocument(
-            id = d.meta.id,
+            id = d.meta.id.value,
             title = d.title,
             file_hash = d.fileHash,
             page_count = d.pageCount.toLong(),
@@ -98,8 +98,8 @@ class SqlDocumentRepository(
             size_bytes = d.sizeBytes,
             created_hlc = d.meta.createdHlc.toText(),
             updated_hlc = d.meta.updatedHlc.toText(),
-            device_id = d.meta.deviceId,
-            author_id = d.meta.authorId,
+            device_id = d.meta.deviceId.value,
+            author_id = d.meta.authorId.value,
             deleted_hlc = d.meta.deletedHlc?.toText(),
         )
         ctx.logChange("document", d.meta.id, op, hlc)
@@ -107,11 +107,11 @@ class SqlDocumentRepository(
 
     private fun DocumentRow.toModel() = Document(
         meta = Meta(
-            id = id,
+            id = EntityId.parse(id),
             createdHlc = Hlc.parse(created_hlc),
             updatedHlc = Hlc.parse(updated_hlc),
-            deviceId = device_id,
-            authorId = author_id,
+            deviceId = EntityId.parse(device_id),
+            authorId = EntityId.parse(author_id),
             deletedHlc = deleted_hlc?.let(Hlc::parse),
         ),
         title = title,

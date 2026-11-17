@@ -1,5 +1,6 @@
 package app.cuaderno.domain
 
+import app.cuaderno.model.EntityId
 import app.cuaderno.model.Notebook
 import kotlinx.coroutines.flow.Flow
 
@@ -10,10 +11,10 @@ interface NotebookRepository {
 
     suspend fun create(title: String): Notebook
 
-    suspend fun rename(id: String, title: String)
+    suspend fun rename(id: EntityId, title: String)
 
     /** Mueve el cuaderno justo después de [after]; con `null`, al principio. Recalcula `sortKey`. */
-    suspend fun move(id: String, after: String?)
+    suspend fun move(id: EntityId, after: EntityId?)
 
-    suspend fun delete(id: String)
+    suspend fun delete(id: EntityId)
 }

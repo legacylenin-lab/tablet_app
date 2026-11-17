@@ -22,11 +22,12 @@ class SqlLibraryRepositoryTest {
     private val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY).also { CuadernoDatabase.Schema.create(it) }
     private val db = CuadernoDatabase(driver)
     private var now = 1_000L
+    private val ids = SequentialIdGenerator()
 
     private class Repos(val docs: SqlDocumentRepository, val annotations: SqlAnnotationRepository)
 
     private fun TestScope.repos(): Repos {
-        val ctx = DataContext(db, deviceId = "dev-1", authorId = "yo", nowMillis = { now++ })
+        val ctx = DataContext(db, deviceId = testId(1), authorId = testId(2), ids = ids, nowMillis = { now++ })
         val d = StandardTestDispatcher(testScheduler)
         return Repos(SqlDocumentRepository(ctx, d), SqlAnnotationRepository(ctx, d))
     }
@@ -133,8 +134,8 @@ class SqlLibraryRepositoryTest {
         assertFailsWith<IllegalArgumentException> { r.docs.add(NewDocument("x", "", 1, 1)) }
         assertFailsWith<IllegalArgumentException> { r.docs.add(NewDocument("x", "h", -1, 1)) }
         assertFailsWith<IllegalArgumentException> { r.docs.add(NewDocument("x", "h", 1, -1)) }
-        assertFailsWith<IllegalArgumentException> { r.docs.delete("no-existe") }
-        assertFailsWith<IllegalArgumentException> { r.docs.setLastReadPage("no-existe", 0) }
+        assertFailsWith<IllegalArgumentException> { r.docs.delete(unknownId) }
+        assertFailsWith<IllegalArgumentException> { r.docs.setLastReadPage(unknownId, 0) }
         assertEquals(0, changes().size)
     }
 
@@ -181,10 +182,10 @@ class SqlLibraryRepositoryTest {
         val doc = r.nuevoDocumento(paginas = 5)
         val a = r.annotations.add(doc.meta.id, 0, resaltado())
         val base = changes().size
-        assertFailsWith<IllegalArgumentException> { r.annotations.add("no-existe", 0, resaltado()) }
+        assertFailsWith<IllegalArgumentException> { r.annotations.add(unknownId, 0, resaltado()) }
         assertFailsWith<IllegalArgumentException> { r.annotations.add(doc.meta.id, 5, resaltado()) }
         assertFailsWith<IllegalArgumentException> { r.annotations.add(doc.meta.id, -1, resaltado()) }
-        assertFailsWith<IllegalArgumentException> { r.annotations.erase(listOf(a.meta.id, "no-existe")) }
+        assertFailsWith<IllegalArgumentException> { r.annotations.erase(listOf(a.meta.id, unknownId)) }
         assertEquals(1, r.annotations.observe(doc.meta.id, 0).first().size)
         assertEquals(base, changes().size)
     }

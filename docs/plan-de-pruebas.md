@@ -144,7 +144,7 @@
 | CU-05 | Parcial | `core/data/src/jvmTest/.../backup/BackupServiceTest.kt` (18 pruebas): manifiesto, checksums, versión futura, archivos dañados y rutas peligrosas. Falta el intercambio final de archivos al restaurar (etapa 6). |
 
 | CU-05b | Pendiente | Prueba instrumentada de Android en `core:data` (decisión de Leyni, 17/11/2026). |
-| CU-06 | Pendiente | Junto con el cambio a `EntityId` (PQ-02). |
+| CU-06 | Hecho | `core/model/.../EntityIdTest.kt` (5 pruebas: parse válido e inválido) y `core/domain/.../RandomIdGeneratorTest.kt` (2 pruebas: 10.000 ids únicos con formato correcto). |
 | CU-07 | Pendiente | Junto con la columna `title_sort` (PQ-13). |
 
 Además: `EntitiesTest.kt` (8 pruebas) cubre los metadatos comunes y el borrado suave.

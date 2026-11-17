@@ -17,9 +17,10 @@ class SqlNotebookRepositoryTest {
     private val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY).also { CuadernoDatabase.Schema.create(it) }
     private val db = CuadernoDatabase(driver)
     private var now = 1_000L
+    private val ids = SequentialIdGenerator()
 
     private fun TestScope.repo() = SqlNotebookRepository(
-        DataContext(db, deviceId = "dev-1", authorId = "yo", nowMillis = { now++ }),
+        DataContext(db, deviceId = testId(1), authorId = testId(2), ids = ids, nowMillis = { now++ }),
         StandardTestDispatcher(testScheduler),
     )
 
@@ -33,8 +34,8 @@ class SqlNotebookRepositoryTest {
         val lista = repo.observeAll().first()
         assertEquals(listOf("Cálculo", "Física"), lista.map { it.title })
         assertTrue(a.sortKey < b.sortKey)
-        assertEquals("dev-1", a.meta.deviceId)
-        assertEquals("yo", a.meta.authorId)
+        assertEquals(testId(1), a.meta.deviceId)
+        assertEquals(testId(2), a.meta.authorId)
     }
 
     @Test
@@ -45,7 +46,7 @@ class SqlNotebookRepositoryTest {
         repo.delete(a.meta.id)
         val log = changes()
         assertEquals(listOf("UPSERT", "UPSERT", "DELETE"), log.map { it.op })
-        assertTrue(log.all { it.entity == "notebook" && it.entity_id == a.meta.id })
+        assertTrue(log.all { it.entity == "notebook" && it.entity_id == a.meta.id.value })
         // Los HLC del registro son crecientes: cada cambio es posterior al anterior.
         val hlcs = log.map { Hlc.parse(it.hlc) }
         assertEquals(hlcs.sorted(), hlcs)
@@ -71,7 +72,7 @@ class SqlNotebookRepositoryTest {
         repo.delete(a.meta.id)
         assertEquals(listOf("Física"), repo.observeAll().first().map { it.title })
         // Borrado suave: la fila sigue en la base de datos con su marca de borrado.
-        val fila = db.cuadernoQueries.selectNotebookById(a.meta.id).executeAsOneOrNull()
+        val fila = db.cuadernoQueries.selectNotebookById(a.meta.id.value).executeAsOneOrNull()
         assertEquals(null, fila)
         val total = driver.executeQuery(null, "SELECT COUNT(*) FROM notebook WHERE deleted_hlc IS NOT NULL", {
             app.cash.sqldelight.db.QueryResult.Value(it.next().value.let { _ -> it.getLong(0) })
@@ -117,10 +118,10 @@ class SqlNotebookRepositoryTest {
     @Test
     fun operarSobreUnCuadernoInexistenteFalla() = runTest {
         val repo = repo()
-        assertFailsWith<IllegalArgumentException> { repo.rename("no-existe", "x") }
-        assertFailsWith<IllegalArgumentException> { repo.delete("no-existe") }
+        assertFailsWith<IllegalArgumentException> { repo.rename(unknownId, "x") }
+        assertFailsWith<IllegalArgumentException> { repo.delete(unknownId) }
         val a = repo.create("A")
-        assertFailsWith<IllegalArgumentException> { repo.move(a.meta.id, after = "no-existe") }
+        assertFailsWith<IllegalArgumentException> { repo.move(a.meta.id, after = unknownId) }
         // Un intento fallido no deja nada en el registro de cambios.
         assertEquals(1, changes().size)
     }
@@ -130,7 +131,7 @@ class SqlNotebookRepositoryTest {
         val repo = repo()
         val a = repo.create("A")
         val antes = changes().size
-        runCatching { repo.move(a.meta.id, after = "no-existe") }
+        runCatching { repo.move(a.meta.id, after = unknownId) }
         assertEquals(antes, changes().size)
     }
 }

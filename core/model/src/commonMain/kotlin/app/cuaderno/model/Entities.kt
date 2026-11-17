@@ -1,38 +1,31 @@
 package app.cuaderno.model
 
-import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
-
-/** Genera un identificador global nuevo (UUID en texto). Nunca autoincremental. */
-@OptIn(ExperimentalUuidApi::class)
-fun newId(): String = Uuid.random().toString()
-
 /**
  * Metadatos comunes de todas las entidades sincronizables.
  * Ver docs/arquitectura.md §3.1.
  */
 data class Meta(
-    val id: String,
+    val id: EntityId,
     val createdHlc: Hlc,
     val updatedHlc: Hlc,
-    val deviceId: String,
-    val authorId: String,
+    val deviceId: EntityId,
+    val authorId: EntityId,
     val deletedHlc: Hlc? = null,
 ) {
     /** Borrado suave: si hay [deletedHlc], el registro está borrado (nunca se purga en la v1). */
     val isDeleted: Boolean get() = deletedHlc != null
 
     /** Metadatos tras un cambio hecho en este instante (por este dispositivo y autor). */
-    fun updated(hlc: Hlc, deviceId: String = this.deviceId, authorId: String = this.authorId) =
+    fun updated(hlc: Hlc, deviceId: EntityId = this.deviceId, authorId: EntityId = this.authorId) =
         copy(updatedHlc = hlc, deviceId = deviceId, authorId = authorId)
 
     /** Metadatos tras borrar: el borrado cuenta también como cambio. */
-    fun deleted(hlc: Hlc, deviceId: String = this.deviceId, authorId: String = this.authorId) =
+    fun deleted(hlc: Hlc, deviceId: EntityId = this.deviceId, authorId: EntityId = this.authorId) =
         copy(updatedHlc = hlc, deletedHlc = hlc, deviceId = deviceId, authorId = authorId)
 
     companion object {
         /** Metadatos de una entidad recién creada. */
-        fun created(id: String, hlc: Hlc, authorId: String) =
+        fun created(id: EntityId, hlc: Hlc, authorId: EntityId) =
             Meta(id = id, createdHlc = hlc, updatedHlc = hlc, deviceId = hlc.deviceId, authorId = authorId)
     }
 }
@@ -55,7 +48,7 @@ data class Notebook(
 /** Página A4 fija (RF-08): 210 × 297 mm. */
 data class Page(
     val meta: Meta,
-    val notebookId: String,
+    val notebookId: EntityId,
     val sortKey: String,
     val template: PageTemplate = PageTemplate.BLANK,
     val widthMm: Int = A4_WIDTH_MM,
@@ -70,7 +63,7 @@ data class Page(
 /** Trazo de tinta. Inmutable: borrar con el borrador es un borrado suave. [points] va codificado (§5.1). */
 class Stroke(
     val meta: Meta,
-    val pageId: String,
+    val pageId: EntityId,
     val tool: StrokeTool,
     val colorArgb: Int,
     val baseWidth: Float,
@@ -86,7 +79,7 @@ class Stroke(
 /** Bloque de texto: único elemento editable en sitio y unidad de conflicto real (RF-24). */
 data class TextBlock(
     val meta: Meta,
-    val pageId: String,
+    val pageId: EntityId,
     val x: Int,
     val y: Int,
     val width: Int,
@@ -107,7 +100,7 @@ data class Document(
 /** Anotación sobre un PDF. Inmutable, igual que el trazo. [geometry] va codificado (§5.1). */
 class Annotation(
     val meta: Meta,
-    val documentId: String,
+    val documentId: EntityId,
     val pageIndex: Int,
     val kind: AnnotationKind,
     val colorArgb: Int,
@@ -123,7 +116,7 @@ class Annotation(
 
 /** Dispositivo: el propio y, desde la v2, los emparejados. */
 data class Device(
-    val id: String,
+    val id: EntityId,
     val name: String,
     val isLocal: Boolean,
 )

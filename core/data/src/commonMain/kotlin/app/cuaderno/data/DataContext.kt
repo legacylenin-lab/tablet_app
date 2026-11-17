@@ -1,6 +1,8 @@
 package app.cuaderno.data
 
 import app.cuaderno.data.db.CuadernoDatabase
+import app.cuaderno.domain.IdGenerator
+import app.cuaderno.model.EntityId
 import app.cuaderno.model.Hlc
 import app.cuaderno.model.HlcClock
 
@@ -10,8 +12,9 @@ import app.cuaderno.model.HlcClock
  */
 class DataContext(
     val db: CuadernoDatabase,
-    val deviceId: String,
-    val authorId: String,
+    val deviceId: EntityId,
+    val authorId: EntityId,
+    val ids: IdGenerator,
     val nowMillis: () -> Long,
 ) {
     /**
@@ -27,8 +30,8 @@ class DataContext(
     }
 
     /** Anota la operación en `change_log` (base de la sincronización de la v2). */
-    fun logChange(entity: String, entityId: String, op: ChangeOp, hlc: Hlc) {
-        db.cuadernoQueries.insertChange(entity, entityId, op.name, hlc.toText())
+    fun logChange(entity: String, entityId: EntityId, op: ChangeOp, hlc: Hlc) {
+        db.cuadernoQueries.insertChange(entity, entityId.value, op.name, hlc.toText())
     }
 }
 

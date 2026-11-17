@@ -9,18 +9,11 @@ import kotlin.test.assertTrue
 
 class EntitiesTest {
 
-    private val device = "dev-1"
-    private val author = "autor-1"
+    private val device = testId(1)
+    private val author = testId(2)
 
     private fun meta(wall: Long = 100) =
-        Meta.created(newId(), Hlc(wall, 0, device), author)
-
-    @Test
-    fun losIdentificadoresSonUnicosYConFormaDeUuid() {
-        val ids = List(1000) { newId() }
-        assertEquals(1000, ids.toSet().size)
-        assertTrue(ids.all { it.length == 36 && it[8] == '-' && it[13] == '-' })
-    }
+        Meta.created(testId(100 + wall.toInt()), Hlc(wall, 0, device), author)
 
     @Test
     fun entidadNuevaTieneCreacionIgualActualizacionYNoEstaBorrada() {
@@ -42,8 +35,8 @@ class EntitiesTest {
 
     @Test
     fun actualizarDesdeOtroDispositivoRegistraQuienLoHizo() {
-        val u = meta().updated(Hlc(200, 0, "dev-2"), deviceId = "dev-2")
-        assertEquals("dev-2", u.deviceId)
+        val u = meta().updated(Hlc(200, 0, testId(3)), deviceId = testId(3))
+        assertEquals(testId(3), u.deviceId)
         assertEquals(author, u.authorId)
     }
 
@@ -58,7 +51,7 @@ class EntitiesTest {
 
     @Test
     fun paginaPorDefectoEsA4Blanca() {
-        val p = Page(meta(), notebookId = "n", sortKey = "a")
+        val p = Page(meta(), notebookId = testId(10), sortKey = "a")
         assertEquals(210, p.widthMm)
         assertEquals(297, p.heightMm)
         assertEquals(PageTemplate.BLANK, p.template)
@@ -67,9 +60,9 @@ class EntitiesTest {
     @Test
     fun trazosConLosMismosPuntosSonIguales() {
         val m = meta()
-        val a = Stroke(m, "p", StrokeTool.PEN, 0xFF000000.toInt(), 3f, byteArrayOf(1, 2, 3))
-        val b = Stroke(m, "p", StrokeTool.PEN, 0xFF000000.toInt(), 3f, byteArrayOf(1, 2, 3))
-        val c = Stroke(m, "p", StrokeTool.PEN, 0xFF000000.toInt(), 3f, byteArrayOf(1, 2, 4))
+        val a = Stroke(m, testId(11), StrokeTool.PEN, 0xFF000000.toInt(), 3f, byteArrayOf(1, 2, 3))
+        val b = Stroke(m, testId(11), StrokeTool.PEN, 0xFF000000.toInt(), 3f, byteArrayOf(1, 2, 3))
+        val c = Stroke(m, testId(11), StrokeTool.PEN, 0xFF000000.toInt(), 3f, byteArrayOf(1, 2, 4))
         assertEquals(a, b)
         assertEquals(a.hashCode(), b.hashCode())
         assertNotEquals(a, c)
@@ -78,9 +71,9 @@ class EntitiesTest {
     @Test
     fun anotacionesConLaMismaGeometriaSonIguales() {
         val m = meta()
-        val a = Annotation(m, "d", 0, AnnotationKind.HIGHLIGHT, 0xFFFFFF00.toInt(), byteArrayOf(9))
-        val b = Annotation(m, "d", 0, AnnotationKind.HIGHLIGHT, 0xFFFFFF00.toInt(), byteArrayOf(9))
+        val a = Annotation(m, testId(12), 0, AnnotationKind.HIGHLIGHT, 0xFFFFFF00.toInt(), byteArrayOf(9))
+        val b = Annotation(m, testId(12), 0, AnnotationKind.HIGHLIGHT, 0xFFFFFF00.toInt(), byteArrayOf(9))
         assertEquals(a, b)
-        assertNotEquals(a, Annotation(m, "d", 1, AnnotationKind.HIGHLIGHT, 0xFFFFFF00.toInt(), byteArrayOf(9)))
+        assertNotEquals(a, Annotation(m, testId(12), 1, AnnotationKind.HIGHLIGHT, 0xFFFFFF00.toInt(), byteArrayOf(9)))
     }
 }

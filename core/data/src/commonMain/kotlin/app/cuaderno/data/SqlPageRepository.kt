@@ -3,12 +3,12 @@ package app.cuaderno.data
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
 import app.cuaderno.domain.PageRepository
+import app.cuaderno.model.EntityId
 import app.cuaderno.model.Hlc
 import app.cuaderno.model.Meta
 import app.cuaderno.model.Page
 import app.cuaderno.model.PageTemplate
 import app.cuaderno.model.SortKey
-import app.cuaderno.model.newId
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -22,14 +22,14 @@ class SqlPageRepository(
 
     private val queries get() = ctx.db.cuadernoQueries
 
-    override fun observeByNotebook(notebookId: String): Flow<List<Page>> =
-        queries.selectPagesByNotebook(notebookId).asFlow().mapToList(dispatcher)
+    override fun observeByNotebook(notebookId: EntityId): Flow<List<Page>> =
+        queries.selectPagesByNotebook(notebookId.value).asFlow().mapToList(dispatcher)
             .map { rows -> rows.map { it.toModel() } }
 
-    override suspend fun add(notebookId: String, template: PageTemplate, after: String?): Page =
+    override suspend fun add(notebookId: EntityId, template: PageTemplate, after: EntityId?): Page =
         withContext(dispatcher) {
             ctx.db.transactionWithResult {
-                requireNotNull(queries.selectNotebookById(notebookId).executeAsOneOrNull()) {
+                requireNotNull(queries.selectNotebookById(notebookId.value).executeAsOneOrNull()) {
                     "No existe el cuaderno: $notebookId"
                 }
                 val hlc = ctx.nextHlc()
@@ -39,7 +39,7 @@ class SqlPageRepository(
             }
         }
 
-    override suspend fun duplicate(id: String): Page = withContext(dispatcher) {
+    override suspend fun duplicate(id: EntityId): Page = withContext(dispatcher) {
         ctx.db.transactionWithResult {
             val original = findPage(id)
             val hlc = ctx.nextHlc()
@@ -53,7 +53,7 @@ class SqlPageRepository(
         }
     }
 
-    override suspend fun move(id: String, after: String?) {
+    override suspend fun move(id: EntityId, after: EntityId?) {
         withContext(dispatcher) {
             ctx.db.transaction {
                 val current = findPage(id)
@@ -64,7 +64,7 @@ class SqlPageRepository(
         }
     }
 
-    override suspend fun delete(id: String) {
+    override suspend fun delete(id: EntityId) {
         withContext(dispatcher) {
             ctx.db.transaction {
                 val current = findPage(id)
@@ -74,15 +74,15 @@ class SqlPageRepository(
         }
     }
 
-    private fun findPage(id: String): Page =
-        queries.selectPageById(id).executeAsOneOrNull()?.toModel()
+    private fun findPage(id: EntityId): Page =
+        queries.selectPageById(id.value).executeAsOneOrNull()?.toModel()
             ?: throw IllegalArgumentException("No existe la página: $id")
 
     /** Clave de orden para colocar algo justo después de [after] entre las páginas visibles del cuaderno. */
-    private fun keyAfter(notebookId: String, after: String?, endIfNull: Boolean, excluding: String? = null): String {
-        val pages = queries.selectPagesByNotebook(notebookId).executeAsList().filter { it.id != excluding }
+    private fun keyAfter(notebookId: EntityId, after: EntityId?, endIfNull: Boolean, excluding: EntityId? = null): String {
+        val pages = queries.selectPagesByNotebook(notebookId.value).executeAsList().filter { it.id != excluding?.value }
         val index = when {
-            after != null -> pages.indexOfFirst { it.id == after }.also {
+            after != null -> pages.indexOfFirst { it.id == after.value }.also {
                 require(it >= 0) { "No existe la página de referencia: $after" }
             }
             endIfNull -> pages.size - 1
@@ -91,30 +91,30 @@ class SqlPageRepository(
         return SortKey.between(pages.getOrNull(index)?.sort_key, pages.getOrNull(index + 1)?.sort_key)
     }
 
-    private fun newPage(notebookId: String, template: PageTemplate, sortKey: String, hlc: Hlc) = Page(
-        meta = Meta.created(newId(), hlc, ctx.authorId),
+    private fun newPage(notebookId: EntityId, template: PageTemplate, sortKey: String, hlc: Hlc) = Page(
+        meta = Meta.created(ctx.ids.newId(), hlc, ctx.authorId),
         notebookId = notebookId,
         sortKey = sortKey,
         template = template,
     )
 
     /** Copia trazos y bloques de texto visibles, con identificadores y marcas de tiempo nuevos. */
-    private fun copyContent(fromPageId: String, toPageId: String) {
-        for (s in queries.selectStrokesByPage(fromPageId).executeAsList()) {
+    private fun copyContent(fromPageId: EntityId, toPageId: EntityId) {
+        for (s in queries.selectStrokesByPage(fromPageId.value).executeAsList()) {
             val hlc = ctx.nextHlc()
-            val id = newId()
+            val id = ctx.ids.newId()
             queries.upsertStroke(
-                id, toPageId, s.tool, s.color, s.base_width, s.points,
-                hlc.toText(), hlc.toText(), ctx.deviceId, ctx.authorId, null,
+                id.value, toPageId.value, s.tool, s.color, s.base_width, s.points,
+                hlc.toText(), hlc.toText(), ctx.deviceId.value, ctx.authorId.value, null,
             )
             ctx.logChange("stroke", id, ChangeOp.UPSERT, hlc)
         }
-        for (t in queries.selectTextBlocksByPage(fromPageId).executeAsList()) {
+        for (t in queries.selectTextBlocksByPage(fromPageId.value).executeAsList()) {
             val hlc = ctx.nextHlc()
-            val id = newId()
+            val id = ctx.ids.newId()
             queries.upsertTextBlock(
-                id, toPageId, t.x, t.y, t.width, t.content, hlc.toText(),
-                hlc.toText(), hlc.toText(), ctx.deviceId, ctx.authorId, null,
+                id.value, toPageId.value, t.x, t.y, t.width, t.content, hlc.toText(),
+                hlc.toText(), hlc.toText(), ctx.deviceId.value, ctx.authorId.value, null,
             )
             ctx.logChange("text_block", id, ChangeOp.UPSERT, hlc)
         }
@@ -123,16 +123,16 @@ class SqlPageRepository(
     /** Escribe la fila y su registro en `change_log`. Siempre dentro de una transacción. */
     private fun save(p: Page, hlc: Hlc, op: ChangeOp) {
         queries.upsertPage(
-            id = p.meta.id,
-            notebook_id = p.notebookId,
+            id = p.meta.id.value,
+            notebook_id = p.notebookId.value,
             sort_key = p.sortKey,
             template = p.template.name,
             width_mm = p.widthMm.toLong(),
             height_mm = p.heightMm.toLong(),
             created_hlc = p.meta.createdHlc.toText(),
             updated_hlc = p.meta.updatedHlc.toText(),
-            device_id = p.meta.deviceId,
-            author_id = p.meta.authorId,
+            device_id = p.meta.deviceId.value,
+            author_id = p.meta.authorId.value,
             deleted_hlc = p.meta.deletedHlc?.toText(),
         )
         ctx.logChange("page", p.meta.id, op, hlc)
@@ -140,14 +140,14 @@ class SqlPageRepository(
 
     private fun PageRow.toModel() = Page(
         meta = Meta(
-            id = id,
+            id = EntityId.parse(id),
             createdHlc = Hlc.parse(created_hlc),
             updatedHlc = Hlc.parse(updated_hlc),
-            deviceId = device_id,
-            authorId = author_id,
+            deviceId = EntityId.parse(device_id),
+            authorId = EntityId.parse(author_id),
             deletedHlc = deleted_hlc?.let(Hlc::parse),
         ),
-        notebookId = notebook_id,
+        notebookId = EntityId.parse(notebook_id),
         sortKey = sort_key,
         template = PageTemplate.valueOf(template),
         widthMm = width_mm.toInt(),

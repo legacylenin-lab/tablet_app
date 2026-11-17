@@ -3,6 +3,7 @@ package app.cuaderno.data
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import app.cuaderno.data.db.CuadernoDatabase
 import app.cuaderno.domain.NewStroke
+import app.cuaderno.model.EntityId
 import app.cuaderno.model.PageTemplate
 import app.cuaderno.model.StrokeCodec
 import app.cuaderno.model.StrokePoint
@@ -22,6 +23,7 @@ class SqlInkAndTextRepositoryTest {
     private val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY).also { CuadernoDatabase.Schema.create(it) }
     private val db = CuadernoDatabase(driver)
     private var now = 1_000L
+    private val ids = SequentialIdGenerator()
 
     private class Repos(
         val notebooks: SqlNotebookRepository,
@@ -31,14 +33,14 @@ class SqlInkAndTextRepositoryTest {
     )
 
     private fun TestScope.repos(): Repos {
-        val ctx = DataContext(db, deviceId = "dev-1", authorId = "yo", nowMillis = { now++ })
+        val ctx = DataContext(db, deviceId = testId(1), authorId = testId(2), ids = ids, nowMillis = { now++ })
         val d = StandardTestDispatcher(testScheduler)
         return Repos(SqlNotebookRepository(ctx, d), SqlPageRepository(ctx, d), SqlInkRepository(ctx, d), SqlTextBlockRepository(ctx, d))
     }
 
     private fun changes() = db.cuadernoQueries.selectChanges().executeAsList()
 
-    private suspend fun Repos.nuevaPagina(): String {
+    private suspend fun Repos.nuevaPagina(): EntityId {
         val n = notebooks.create("N").meta.id
         return pages.add(n, PageTemplate.BLANK, null).meta.id
     }
@@ -130,18 +132,18 @@ class SqlInkAndTextRepositoryTest {
         val pagina = r.nuevaPagina()
         val a = r.ink.add(pagina, unTrazo)
         val base = changes().size
-        assertFailsWith<IllegalArgumentException> { r.ink.erase(listOf(a.meta.id, "no-existe")) }
+        assertFailsWith<IllegalArgumentException> { r.ink.erase(listOf(a.meta.id, unknownId)) }
         // El primero tampoco se borró: la operación es todo o nada.
         assertEquals(1, r.ink.observeStrokes(pagina).first().size)
         assertEquals(base, changes().size)
-        assertFailsWith<IllegalArgumentException> { r.ink.restore(listOf("no-existe")) }
+        assertFailsWith<IllegalArgumentException> { r.ink.restore(listOf(unknownId)) }
     }
 
     @Test
     fun noSePuedeDibujarEnUnaPaginaInexistenteOBorrada() = runTest {
         val r = repos()
         val pagina = r.nuevaPagina()
-        assertFailsWith<IllegalArgumentException> { r.ink.add("no-existe", unTrazo) }
+        assertFailsWith<IllegalArgumentException> { r.ink.add(unknownId, unTrazo) }
         r.pages.delete(pagina)
         assertFailsWith<IllegalArgumentException> { r.ink.add(pagina, unTrazo) }
     }
@@ -228,11 +230,11 @@ class SqlInkAndTextRepositoryTest {
         val pagina = r.nuevaPagina()
         val b = r.text.create(pagina, 0, 0, 100)
         val base = changes().size
-        assertFailsWith<IllegalArgumentException> { r.text.create("no-existe", 0, 0, 100) }
+        assertFailsWith<IllegalArgumentException> { r.text.create(unknownId, 0, 0, 100) }
         assertFailsWith<IllegalArgumentException> { r.text.create(pagina, 0, 0, 0) }
-        assertFailsWith<IllegalArgumentException> { r.text.updateContent("no-existe", "x") }
+        assertFailsWith<IllegalArgumentException> { r.text.updateContent(unknownId, "x") }
         assertFailsWith<IllegalArgumentException> { r.text.moveResize(b.meta.id, 0, 0, -5) }
-        assertFailsWith<IllegalArgumentException> { r.text.delete("no-existe") }
+        assertFailsWith<IllegalArgumentException> { r.text.delete(unknownId) }
         assertEquals(base, changes().size)
     }
 

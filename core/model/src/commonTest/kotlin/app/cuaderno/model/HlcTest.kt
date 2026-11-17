@@ -8,8 +8,8 @@ import kotlin.test.assertTrue
 
 class HlcTest {
 
-    private val a = "aaaa"
-    private val b = "bbbb"
+    private val a = EntityId.parse("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
+    private val b = EntityId.parse("bbbbbbbb-bbbb-4bbb-9bbb-bbbbbbbbbbbb")
 
     @Test
     fun ordenaPorTiempoLuegoContadorLuegoDispositivo() {
@@ -21,8 +21,8 @@ class HlcTest {
 
     @Test
     fun textoIdaYVuelta() {
-        val hlc = Hlc(1_731_772_800_000, 3, "6f1c-demo")
-        assertEquals("001731772800000-0003-6f1c-demo", hlc.toText())
+        val hlc = Hlc(1_731_772_800_000, 3, a)
+        assertEquals("001731772800000-0003-aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", hlc.toText())
         assertEquals(hlc, Hlc.parse(hlc.toText()))
     }
 
@@ -38,7 +38,9 @@ class HlcTest {
     @Test
     fun textoInvalidoFalla() {
         assertFailsWith<IllegalArgumentException> { Hlc.parse("basura") }
-        assertFailsWith<IllegalArgumentException> { Hlc.parse("00000000000000x-0000-a") }
+        assertFailsWith<IllegalArgumentException> { Hlc.parse("00000000000000x-0000-aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa") }
+        // El identificador del dispositivo también se valida.
+        assertFailsWith<IllegalArgumentException> { Hlc.parse("001731772800000-0003-no-es-un-uuid") }
     }
 
     @Test

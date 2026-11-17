@@ -1,5 +1,6 @@
 package app.cuaderno.domain
 
+import app.cuaderno.model.EntityId
 import app.cuaderno.model.Annotation
 import app.cuaderno.model.AnnotationKind
 import app.cuaderno.model.Document
@@ -32,9 +33,9 @@ interface DocumentRepository {
     suspend fun add(newDocument: NewDocument): AddDocumentResult
 
     /** Recuerda la página de lectura (0 hasta `pageCount - 1`). */
-    suspend fun setLastReadPage(id: String, page: Int)
+    suspend fun setLastReadPage(id: EntityId, page: Int)
 
-    suspend fun delete(id: String)
+    suspend fun delete(id: EntityId)
 }
 
 /** Datos de una anotación nueva; [geometry] va codificada (§5.1). */
@@ -46,13 +47,13 @@ class NewAnnotation(
 
 /** Anotaciones sobre PDF: igual que la tinta, pero por (documento, página). Inmutables, borrado suave. */
 interface AnnotationRepository {
-    fun observe(documentId: String, pageIndex: Int): Flow<List<Annotation>>
+    fun observe(documentId: EntityId, pageIndex: Int): Flow<List<Annotation>>
 
-    suspend fun add(documentId: String, pageIndex: Int, annotation: NewAnnotation): Annotation
+    suspend fun add(documentId: EntityId, pageIndex: Int, annotation: NewAnnotation): Annotation
 
     /** Borrado suave. Repetirlo no hace nada; un id inexistente falla. */
-    suspend fun erase(ids: List<String>)
+    suspend fun erase(ids: List<EntityId>)
 
     /** Deshace un borrado. Un id inexistente falla. */
-    suspend fun restore(ids: List<String>)
+    suspend fun restore(ids: List<EntityId>)
 }

@@ -3,11 +3,11 @@ package app.cuaderno.data
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
 import app.cuaderno.domain.NotebookRepository
+import app.cuaderno.model.EntityId
 import app.cuaderno.model.Hlc
 import app.cuaderno.model.Meta
 import app.cuaderno.model.Notebook
 import app.cuaderno.model.SortKey
-import app.cuaderno.model.newId
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -29,7 +29,7 @@ class SqlNotebookRepository(
             val hlc = ctx.nextHlc()
             val last = queries.selectNotebooks().executeAsList().lastOrNull()
             val notebook = Notebook(
-                meta = Meta.created(newId(), hlc, ctx.authorId),
+                meta = Meta.created(ctx.ids.newId(), hlc, ctx.authorId),
                 title = title,
                 sortKey = SortKey.between(last?.sort_key, null),
             )
@@ -38,18 +38,18 @@ class SqlNotebookRepository(
         }
     }
 
-    override suspend fun rename(id: String, title: String) {
+    override suspend fun rename(id: EntityId, title: String) {
         change(id) { notebook, hlc -> notebook.copy(meta = notebook.meta.updated(hlc, ctx.deviceId), title = title) }
     }
 
-    override suspend fun move(id: String, after: String?) {
+    override suspend fun move(id: EntityId, after: EntityId?) {
         withContext(dispatcher) {
             ctx.db.transaction {
-                val others = queries.selectNotebooks().executeAsList().filter { it.id != id }
-                val index = if (after == null) -1 else others.indexOfFirst { it.id == after }
+                val others = queries.selectNotebooks().executeAsList().filter { it.id != id.value }
+                val index = if (after == null) -1 else others.indexOfFirst { it.id == after.value }
                 require(after == null || index >= 0) { "No existe el cuaderno de referencia: $after" }
                 val newKey = SortKey.between(others.getOrNull(index)?.sort_key, others.getOrNull(index + 1)?.sort_key)
-                val current = queries.selectNotebookById(id).executeAsOneOrNull()?.toModel()
+                val current = queries.selectNotebookById(id.value).executeAsOneOrNull()?.toModel()
                     ?: throw IllegalArgumentException("No existe el cuaderno: $id")
                 val hlc = ctx.nextHlc()
                 save(current.copy(meta = current.meta.updated(hlc, ctx.deviceId), sortKey = newKey), hlc, ChangeOp.UPSERT)
@@ -57,10 +57,10 @@ class SqlNotebookRepository(
         }
     }
 
-    override suspend fun delete(id: String) {
+    override suspend fun delete(id: EntityId) {
         withContext(dispatcher) {
             ctx.db.transaction {
-                val current = queries.selectNotebookById(id).executeAsOneOrNull()?.toModel()
+                val current = queries.selectNotebookById(id.value).executeAsOneOrNull()?.toModel()
                     ?: throw IllegalArgumentException("No existe el cuaderno: $id")
                 val hlc = ctx.nextHlc()
                 save(current.copy(meta = current.meta.deleted(hlc, ctx.deviceId)), hlc, ChangeOp.DELETE)
@@ -68,10 +68,10 @@ class SqlNotebookRepository(
         }
     }
 
-    private suspend fun change(id: String, edit: (Notebook, Hlc) -> Notebook) {
+    private suspend fun change(id: EntityId, edit: (Notebook, Hlc) -> Notebook) {
         withContext(dispatcher) {
             ctx.db.transaction {
-                val current = queries.selectNotebookById(id).executeAsOneOrNull()?.toModel()
+                val current = queries.selectNotebookById(id.value).executeAsOneOrNull()?.toModel()
                     ?: throw IllegalArgumentException("No existe el cuaderno: $id")
                 val hlc = ctx.nextHlc()
                 save(edit(current, hlc), hlc, ChangeOp.UPSERT)
@@ -82,15 +82,15 @@ class SqlNotebookRepository(
     /** Escribe la fila y su registro en `change_log`. Siempre dentro de una transacción. */
     private fun save(n: Notebook, hlc: Hlc, op: ChangeOp) {
         queries.upsertNotebook(
-            id = n.meta.id,
+            id = n.meta.id.value,
             title = n.title,
             semester = n.semester,
             color = n.color?.toLong(),
             sort_key = n.sortKey,
             created_hlc = n.meta.createdHlc.toText(),
             updated_hlc = n.meta.updatedHlc.toText(),
-            device_id = n.meta.deviceId,
-            author_id = n.meta.authorId,
+            device_id = n.meta.deviceId.value,
+            author_id = n.meta.authorId.value,
             deleted_hlc = n.meta.deletedHlc?.toText(),
         )
         ctx.logChange("notebook", n.meta.id, op, hlc)
@@ -98,11 +98,11 @@ class SqlNotebookRepository(
 
     private fun NotebookRow.toModel() = Notebook(
         meta = Meta(
-            id = id,
+            id = EntityId.parse(id),
             createdHlc = Hlc.parse(created_hlc),
             updatedHlc = Hlc.parse(updated_hlc),
-            deviceId = device_id,
-            authorId = author_id,
+            deviceId = EntityId.parse(device_id),
+            authorId = EntityId.parse(author_id),
             deletedHlc = deleted_hlc?.let(Hlc::parse),
         ),
         title = title,
