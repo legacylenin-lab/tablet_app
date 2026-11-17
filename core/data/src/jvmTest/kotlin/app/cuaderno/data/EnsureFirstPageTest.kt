@@ -73,4 +73,16 @@ class EnsureFirstPageTest {
         e.notebooks.create("B")
         assertEquals(a.meta.id, e.ensure().notebookId)
     }
+
+    @Test
+    fun deUnCuadernoNuevoCreaSuPrimeraPaginaUnaSolaVez() = runTest {
+        val e = env()
+        val a = e.notebooks.create("A")
+        val b = e.notebooks.create("B")
+        val paginaB = e.ensure.forNotebook(b.meta.id)
+        assertEquals(b.meta.id, paginaB.notebookId)
+        assertEquals(paginaB.meta.id, e.ensure.forNotebook(b.meta.id).meta.id)
+        assertEquals(1, e.pages.observeByNotebook(b.meta.id).first().size)
+        assertEquals(0, e.pages.observeByNotebook(a.meta.id).first().size)
+    }
 }

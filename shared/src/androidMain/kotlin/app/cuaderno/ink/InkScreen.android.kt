@@ -42,6 +42,7 @@ import androidx.ink.strokes.StrokeInput
 import app.cuaderno.AppServices
 import app.cuaderno.domain.EnsureFirstPage
 import app.cuaderno.model.EntityId
+import app.cuaderno.model.Notebook
 import app.cuaderno.model.StrokeTool
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
@@ -50,23 +51,27 @@ import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.Matrix as ComposeMatrix
 
 @Composable
-actual fun InkPrototypeScreen(services: AppServices?, modifier: Modifier) {
+actual fun InkPrototypeScreen(services: AppServices?, notebook: Notebook?, onBack: (() -> Unit)?, modifier: Modifier) {
     var useInk by remember { mutableStateOf(true) }
     Column(modifier = modifier.fillMaxSize()) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("Motor de tinta:", style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(end = 8.dp))
-            if (useInk) {
-                Button(onClick = {}) { Text("androidx.ink (guarda los trazos)") }
-                OutlinedButton(onClick = { useInk = false }, modifier = Modifier.padding(start = 8.dp)) { Text("Solo Compose (no guarda)") }
+            if (onBack != null) {
+                OutlinedButton(onClick = onBack) { Text("← Cuadernos") }
             } else {
-                OutlinedButton(onClick = { useInk = true }) { Text("androidx.ink (guarda los trazos)") }
-                Button(onClick = {}, modifier = Modifier.padding(start = 8.dp)) { Text("Solo Compose (no guarda)") }
+                Text("Motor de tinta:", style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(end = 8.dp))
+                if (useInk) {
+                    Button(onClick = {}) { Text("androidx.ink (guarda los trazos)") }
+                    OutlinedButton(onClick = { useInk = false }, modifier = Modifier.padding(start = 8.dp)) { Text("Solo Compose (no guarda)") }
+                } else {
+                    OutlinedButton(onClick = { useInk = true }) { Text("androidx.ink (guarda los trazos)") }
+                    Button(onClick = {}, modifier = Modifier.padding(start = 8.dp)) { Text("Solo Compose (no guarda)") }
+                }
             }
         }
-        if (useInk) InkPageScreen(services, Modifier.weight(1f)) else ComposeInkScreen(Modifier.weight(1f))
+        if (useInk) InkPageScreen(services, notebook, Modifier.weight(1f)) else ComposeInkScreen(Modifier.weight(1f))
     }
 }
 
@@ -113,7 +118,7 @@ private class UserAction(val kind: ActionKind, val strokes: List<DrawnStroke>)
  * Solo el lápiz escribe; el dedo se descarta antes de llegar a la tinta (RF-03).
  */
 @Composable
-private fun InkPageScreen(services: AppServices?, modifier: Modifier = Modifier) {
+private fun InkPageScreen(services: AppServices?, notebook: Notebook?, modifier: Modifier = Modifier) {
     val scope = rememberCoroutineScope()
     val strokes = remember { mutableStateListOf<DrawnStroke>() }
     val undoStack = remember { mutableStateListOf<UserAction>() }
@@ -140,7 +145,8 @@ private fun InkPageScreen(services: AppServices?, modifier: Modifier = Modifier)
     LaunchedEffect(services) {
         if (services == null) return@LaunchedEffect
         try {
-            val page = EnsureFirstPage(services.notebooks, services.pages)()
+            val ensure = EnsureFirstPage(services.notebooks, services.pages)
+            val page = if (notebook != null) ensure.forNotebook(notebook.meta.id) else ensure()
             pageId = page.meta.id
             for (saved in services.ink.observeStrokes(page.meta.id).first()) {
                 val ink = saved.toInkStroke() ?: continue
@@ -225,7 +231,7 @@ private fun InkPageScreen(services: AppServices?, modifier: Modifier = Modifier)
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("Página 1 · Mi primer cuaderno", style = MaterialTheme.typography.titleMedium)
+                Text("Página 1 · ${notebook?.title ?: EnsureFirstPage.FIRST_NOTEBOOK_TITLE}", style = MaterialTheme.typography.titleMedium)
                 Text(
                     when {
                         message != null -> message!!

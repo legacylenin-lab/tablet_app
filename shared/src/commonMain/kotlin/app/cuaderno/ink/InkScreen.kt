@@ -3,10 +3,16 @@ package app.cuaderno.ink
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import app.cuaderno.AppServices
+import app.cuaderno.model.Notebook
 
 /**
  * Pantalla del prototipo de tinta (P-0). En Android usa la librería de baja latencia `androidx.ink`
  * (con la versión de solo Compose para comparar); en la PC no se dibuja (RF-21).
  */
 @Composable
-expect fun InkPrototypeScreen(services: AppServices?, modifier: Modifier = Modifier)
+expect fun InkPrototypeScreen(
+    services: AppServices?,
+    notebook: Notebook? = null,
+    onBack: (() -> Unit)? = null,
+    modifier: Modifier = Modifier,
+)
