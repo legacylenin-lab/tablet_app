@@ -390,7 +390,7 @@ Versiones exactas fijadas el **17/11/2026**, tal como están en `gradle/libs.ver
 | JUnit / AndroidX Test (runner, ext, espresso) | 4.13.2 / 1.7.0, 1.3.0, 3.7.0 | EPL 1.0 / Apache 2.0 | Fijada (solo pruebas) |
 | Navigation Compose (KMP) | — | Apache 2.0 | Aprobada; se fija al adoptarla |
 | compose-rich-editor | — | Apache 2.0 | A validar en la etapa 4 |
-| androidx.ink | — | Apache 2.0 | A validar en la etapa 3 |
+| androidx.ink | — | Apache 2.0 | Aprobada. **Adoptada** en la versión estable 1.0.0 tras el prototipo P-0 (17/11/2026) |
 | Apache PDFBox | — | Apache 2.0 | A validar en P-1 |
 | PdfBox-Android | — | Apache 2.0 | A validar en P-2 |
 | Ktor, JmDNS, ZXing, CameraX, ML Kit | — | Apache 2.0 | Solo cuando llegue su versión |

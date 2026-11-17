@@ -48,6 +48,7 @@
   - `androidx.ink` o entrada de baja latencia en la tablet real;
   - distinguir lápiz y dedo (RF-03);
   - medir la latencia (7.1).
+  - **Resultado (17/11/2026, tablet Lenovo TB336ZU, Android 16, pantalla de 90 Hz):** `androidx.ink` 1.0.0 funciona y usa la ruta de baja latencia. El lápiz y el dedo se distinguen bien: el dedo y la palma no escriben. La presión cambia el grosor. A simple vista la latencia es parecida a la de solo Compose; falta la medición con cámara lenta (7.1). El lápiz no tiene extremo borrador: se alterna lápiz/borrador con su doble toque o con un botón en pantalla (PQ-20). **Decisión del prototipo: adoptar `androidx.ink` 1.0.0.**
 - **P-1 (PDF, etapa 5):**
   - `PdfRenderer` en Android y PDFBox en Windows detrás de `PdfEngine`;
   - PDF de 500 páginas;
