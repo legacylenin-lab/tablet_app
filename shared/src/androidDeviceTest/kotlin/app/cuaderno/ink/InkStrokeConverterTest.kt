@@ -81,6 +81,23 @@ class InkStrokeConverterTest {
     }
 
     @Test
+    fun unTrazoDeResaltadorGuardaSuHerramientaColorYGrosor() {
+        val color = 0x66FFEB3B
+        val resaltado = Stroke(brushFor(StrokeTool.HIGHLIGHTER, color, 60f), spiral().inputs)
+        val nuevo = assertNotNull(resaltado.toNewStroke(StrokeTool.HIGHLIGHTER))
+        assertEquals(StrokeTool.HIGHLIGHTER, nuevo.tool)
+        assertEquals(color, nuevo.colorArgb)
+        assertEquals(60f, nuevo.baseWidth)
+
+        val guardado = ModelStroke(Meta.created(id, Hlc(1, 0, id), id), id, nuevo.tool, nuevo.colorArgb, nuevo.baseWidth, nuevo.points)
+        val rebuilt = assertNotNull(guardado.toInkStroke())
+        assertEquals(color, rebuilt.brush.colorIntArgb)
+        assertEquals(60f, rebuilt.brush.size)
+        assertEquals(brushFor(StrokeTool.HIGHLIGHTER, color, 60f).family, rebuilt.brush.family)
+        assertTrue(rebuilt.shape.getRenderGroupCount() > 0)
+    }
+
+    @Test
     fun elTrazoReconstruidoTieneFormaParaDibujarse() {
         val rebuilt = assertNotNull(saved(assertNotNull(spiral().toNewStroke()).points).toInkStroke())
         assertTrue(rebuilt.shape.getRenderGroupCount() > 0)

@@ -17,11 +17,19 @@ import app.cuaderno.model.Stroke as ModelStroke
  */
 internal const val BRUSH_EPSILON_UNITS = 0.13f
 
+/** La brocha de la librería de tinta para una herramienta: lápiz de presión o resaltador. */
+internal fun brushFor(tool: StrokeTool, colorArgb: Int, size: Float): Brush = Brush.createWithColorIntArgb(
+    family = if (tool == StrokeTool.HIGHLIGHTER) StockBrushes.highlighter() else StockBrushes.pressurePen(),
+    colorIntArgb = colorArgb,
+    size = size,
+    epsilon = BRUSH_EPSILON_UNITS,
+)
+
 /**
- * Convierte un trazo de la librería de tinta en lo que guarda la base de datos.
+ * Convierte un trazo de la librería de tinta en lo que guarda la base de datos, con la [tool] con que se hizo.
  * Devuelve `null` si el trazo no tiene puntos. Si la entrada no trae presión, se usa la máxima.
  */
-internal fun Stroke.toNewStroke(): NewStroke? {
+internal fun Stroke.toNewStroke(tool: StrokeTool = StrokeTool.PEN): NewStroke? {
     val scratch = StrokeInput()
     val hasPressure = inputs.hasPressure()
     val raw = List(inputs.size) { i ->
@@ -30,7 +38,7 @@ internal fun Stroke.toNewStroke(): NewStroke? {
     }
     val points = InkConversion.toStrokePoints(raw)
     if (points.isEmpty()) return null
-    return NewStroke(StrokeTool.PEN, brush.colorIntArgb, brush.size, StrokeCodec.encode(points))
+    return NewStroke(tool, brush.colorIntArgb, brush.size, StrokeCodec.encode(points))
 }
 
 /** Reconstruye el trazo de la tinta a partir de lo guardado. Devuelve `null` si los datos no sirven. */
@@ -46,8 +54,7 @@ internal fun ModelStroke.toInkStroke(): Stroke? = try {
                 InkConversion.STROKE_UNIT_LENGTH_CM, InkConversion.byteToPressure(p.pressure),
             )
         }
-        val brush = Brush.createWithColorIntArgb(StockBrushes.pressurePen(), colorArgb, baseWidth, BRUSH_EPSILON_UNITS)
-        Stroke(brush, batch)
+        Stroke(brushFor(tool, colorArgb, baseWidth), batch)
     }
 } catch (e: IllegalArgumentException) {
     null
