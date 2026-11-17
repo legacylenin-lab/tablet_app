@@ -129,6 +129,9 @@
 | CU-03 | `sortKey` | Insertar entre dos claves siempre da una clave intermedia; mil inserciones seguidas en el mismo hueco. |
 | CU-04 | Repositorios | Cada escritura deja su fila en `change_log` en la misma transacción; las consultas ocultan los borrados; borrar un cuaderno oculta sus páginas. |
 | CU-05 | Respaldo | Manifest correcto; los checksums detectan corrupción; se rechaza una versión futura. |
+| CU-05b | Respaldo en Android | **Prueba instrumentada en el emulador** (PQ-10): exportar un respaldo con `VACUUM INTO` sobre el SQLite real de Android e inspeccionarlo; el manifiesto y los checksums coinciden. |
+| CU-06 | `EntityId` | `parse` acepta un UUID válido y rechaza texto inválido; `newId` genera ids únicos (10.000 sin repetir) con el formato correcto (PQ-02). |
+| CU-07 | `TitleSort` | "Álgebra" < "Zebra"; "nube" < "ñandú" < "oso"; mayúsculas, tildes y diéresis no alteran el orden; espacios colapsados; mismo resultado en `jvmTest` y en Android. La consulta de biblioteca y cuadernos ordena por `title_sort`, y renombrar lo recalcula (PQ-13). |
 
 **Estado de implementación (16/11/2026):**
 
@@ -139,6 +142,10 @@
 | CU-03 | Hecho | `core/model/.../SortKeyTest.kt` (6 pruebas) |
 | CU-04 | Hecho | `core/data/src/jvmTest/...`: repositorios de cuadernos, páginas, trazos, texto, documentos y anotaciones (50 pruebas). Incluye `change_log` en la misma transacción, borrados ocultos y "borrar un cuaderno oculta sus páginas". También cubre la regla de CS-13 (el mismo PDF no se duplica) a nivel de datos. |
 | CU-05 | Parcial | `core/data/src/jvmTest/.../backup/BackupServiceTest.kt` (18 pruebas): manifiesto, checksums, versión futura, archivos dañados y rutas peligrosas. Falta el intercambio final de archivos al restaurar (etapa 6). |
+
+| CU-05b | Pendiente | Prueba instrumentada de Android en `core:data` (decisión de Leyni, 17/11/2026). |
+| CU-06 | Pendiente | Junto con el cambio a `EntityId` (PQ-02). |
+| CU-07 | Pendiente | Junto con la columna `title_sort` (PQ-13). |
 
 Además: `EntitiesTest.kt` (8 pruebas) cubre los metadatos comunes y el borrado suave.
 
@@ -269,7 +276,7 @@ Toda tarea de construcción y prueba documentada se ejecuta en la PC con ESET us
 | RF-11 | CP-10, PA-03 |
 | RF-13 | CP-07, PA-02 |
 | RF-16 | CP-08 |
-| RF-17 | CP-09, CU-05, PA-04 |
+| RF-17 | CP-09, CU-05, CU-05b, PA-04 |
 | RF-18, RF-27 | CP-14, CP-15, PA-05, P-2 |
 | RF-21 | CP-13 |
 | RF-22 a RF-25 | CS-01 a CS-18, PA-06, PA-07 |
@@ -283,7 +290,8 @@ Toda tarea de construcción y prueba documentada se ejecuta en la PC con ESET us
 | RNF-01, RNF-09 | 7.4 |
 | RNF-07, RNF-20 | 7.5, CS-11, CS-18, P-3 |
 | RNF-08 | 7.6 |
-| RNF-11 | CU-01, CU-04 |
+| RNF-11 | CU-01, CU-04, CU-06 |
+| RNF-17 (orden de listas) | CU-07 |
 | RNF-13 | CU-02 |
 | RNF-21 | CP-16, 7.2 |
 | RNF-22 | 7.8 |

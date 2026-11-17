@@ -29,6 +29,9 @@ Este repositorio es la **app de notas y biblioteca** para tablet Android y PC co
 | `estado.md` | En qué etapa estamos y qué sigue | Sí, al cerrar cada sesión |
 | `ritmo-de-trabajo.md` | Cómo trabaja y aprende el dueño (documento vivo) | Sí, al cerrar cada sesión |
 | `guia-git.md`, `entorno.md` | Guías prácticas | Sí, si descubres algo que las mejora |
+| `pendientes-a-consultar.md` | Puntos para que Leyni decida (prefijo `PQ-`) | Sí, agrega filas "Abierto" y marca lo implementado; **solo Leyni decide** |
+
+**Prefijos:** `PQ-xx` = pendiente a consultar (`pendientes-a-consultar.md`); `PC-xx` = propuesta de cambio de requisitos (`requisitos.md` §8). No los mezcles.
 
 Si una petición contradice estos documentos, **no la implementes**: explica el conflicto con palabras simples y registra una propuesta.
 
