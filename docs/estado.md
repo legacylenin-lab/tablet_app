@@ -16,12 +16,13 @@
 - **Pruebas:** más de 140 pruebas propias en verde, más una prueba instrumentada que corre en el emulador Android (`./gradlew :core:data:connectedAndroidDeviceTest`, con un emulador encendido). `./gradlew build` pasa completo.
 
 - **Etapa 3, hasta ahora:** prototipo P-0 con `androidx.ink` 1.0.0 (adoptada); hoja A4 donde solo escribe el lápiz; el doble toque del botón del lápiz alterna lápiz/borrador; los trazos se guardan en la base de datos al soltar el lápiz y se cargan al abrir la app; borrado suave con deshacer y rehacer. Probado a mano en la tablet real (Lenovo TB336ZU, Android 16) y con 7 pruebas instrumentadas.
+- **Barra de herramientas (RF-02), probada en la tablet:** lápiz y resaltador con 6 y 4 colores y varios grosores; cada trazo guarda herramienta, color y grosor y se recarga igual. La librería de tinta pide la brocha vigente en cada trazo (`nextBrush`).
 
 ## En curso
 - Nada abierto. Si el último commit (guardado de trazos) no aparece en el historial de Git, falta hacerlo.
 
 ## Siguiente
-- **Terminar la etapa 3:** elegir color y grosor del lápiz (RF-02), resaltador, y que el dedo desplace y haga zoom sin escribir (RF-03). Después, la etapa 4 (cuadernos, varias páginas y texto).
+- **Terminar la etapa 3:** que el dedo desplace y haga zoom sin escribir (RF-03). Después, la etapa 4 (cuadernos, varias páginas y texto).
 - Al inicio de cada etapa: revisar si ya hay una versión estable de Compose Material 3 (PQ-04b).
 - Para la etapa 6: último paso de la restauración y la interfaz delgada de `BackupService` en `core:domain` (PQ-14, PQ-17).
 - Para la v1.x: búsqueda de texto con FTS (PQ-18).

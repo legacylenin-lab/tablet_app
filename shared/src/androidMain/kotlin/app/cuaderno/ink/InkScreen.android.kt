@@ -20,6 +20,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -126,6 +127,7 @@ private fun InkPageScreen(services: AppServices?, modifier: Modifier = Modifier)
     val brush = remember(toolSettings.tool, toolSettings.colorArgb, toolSettings.width) {
         brushFor(toolSettings.tool, toolSettings.colorArgb, toolSettings.width)
     }
+    val currentBrush = rememberUpdatedState(brush)
     val renderer = remember { CanvasStrokeRenderer.create() }
 
     // Cada pulsación del botón del lápiz alterna entre lápiz y borrador.
@@ -318,6 +320,7 @@ private fun InkPageScreen(services: AppServices?, modifier: Modifier = Modifier)
                 // Trazo en curso, con baja latencia. Al terminar, pasa a la lista de arriba y se guarda.
                 InProgressStrokes(
                     defaultBrush = if (loaded) brush else null,
+                    nextBrush = { currentBrush.value },
                     pointerEventToWorldTransform = screenToWorld,
                     onStrokesFinished = { finished ->
                         val tool = toolSettings.tool
