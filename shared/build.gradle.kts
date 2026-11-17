@@ -39,6 +39,8 @@ kotlin {
             implementation(libs.compose.uiTooling)
         }
         commonMain.dependencies {
+            // La interfaz conoce el dominio y el modelo, no la base de datos (docs/arquitectura.md §2).
+            api(project(":core:domain"))
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
             implementation(libs.compose.material3)
