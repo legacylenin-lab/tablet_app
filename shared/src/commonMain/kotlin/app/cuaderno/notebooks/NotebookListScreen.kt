@@ -47,6 +47,7 @@ private sealed interface NotebookDialog {
 fun NotebookListScreen(
     services: AppServices,
     onOpen: (Notebook) -> Unit,
+    onTextTest: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
@@ -69,6 +70,7 @@ fun NotebookListScreen(
     Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Mis cuadernos", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
+            OutlinedButton(onClick = onTextTest, modifier = Modifier.padding(end = 8.dp)) { Text("Probar texto") }
             Button(onClick = { dialog = NotebookDialog.Create }) { Text("Nuevo cuaderno") }
         }
         message?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 8.dp)) }

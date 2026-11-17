@@ -45,6 +45,8 @@ kotlin {
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
             implementation(libs.compose.material3)
+            // Texto enriquecido (RF-04), docs/arquitectura.md §5.4 y §11.
+            implementation(libs.richEditor.compose)
             implementation(libs.compose.ui)
             implementation(libs.compose.components.resources)
             implementation(libs.compose.uiToolingPreview)
