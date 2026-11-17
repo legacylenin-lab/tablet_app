@@ -33,14 +33,13 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.ink.authoring.compose.InProgressStrokes
-import androidx.ink.brush.Brush
-import androidx.ink.brush.StockBrushes
 import androidx.ink.rendering.android.canvas.CanvasStrokeRenderer
 import androidx.ink.strokes.Stroke
 import androidx.ink.strokes.StrokeInput
 import app.cuaderno.AppServices
 import app.cuaderno.domain.EnsureFirstPage
 import app.cuaderno.model.EntityId
+import app.cuaderno.model.StrokeTool
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.first
@@ -72,13 +71,14 @@ actual fun InkPrototypeScreen(services: AppServices?, modifier: Modifier) {
 private const val PAGE_WIDTH_UNITS = 2100f
 private const val PAGE_HEIGHT_UNITS = 2970f
 
-/** Grosor base del lápiz en esas mismas unidades (4 unidades = 0,4 mm). La fidelidad está en `InkStrokeConverter`. */
-private const val BRUSH_SIZE_UNITS = 4f
-
 private const val ERASER_RADIUS_PX = 28f
 
 /** Un trazo en pantalla. [id] se completa cuando la base de datos lo guardó (los cargados ya lo traen). */
-private class DrawnStroke(val id: CompletableDeferred<EntityId>, val ink: Stroke) {
+private class DrawnStroke(
+    val id: CompletableDeferred<EntityId>,
+    val ink: Stroke,
+    val tool: StrokeTool = StrokeTool.PEN,
+) {
     var visible by mutableStateOf(true)
 
     /** Puntos del trazo para saber si el borrador lo toca. Se calculan una sola vez. */
@@ -121,13 +121,10 @@ private fun InkPageScreen(services: AppServices?, modifier: Modifier = Modifier)
     var eraserMode by remember { mutableStateOf(false) }
     var lastDevice by remember { mutableStateOf("ninguno todavía") }
 
-    val brush = remember {
-        Brush.createWithColorIntArgb(
-            family = StockBrushes.pressurePen(),
-            colorIntArgb = 0xFF000000.toInt(),
-            size = BRUSH_SIZE_UNITS,
-            epsilon = BRUSH_EPSILON_UNITS,
-        )
+    var toolSettings by remember { mutableStateOf(ToolSettings()) }
+
+    val brush = remember(toolSettings.tool, toolSettings.colorArgb, toolSettings.width) {
+        brushFor(toolSettings.tool, toolSettings.colorArgb, toolSettings.width)
     }
     val renderer = remember { CanvasStrokeRenderer.create() }
 
@@ -142,7 +139,7 @@ private fun InkPageScreen(services: AppServices?, modifier: Modifier = Modifier)
             pageId = page.meta.id
             for (saved in services.ink.observeStrokes(page.meta.id).first()) {
                 val ink = saved.toInkStroke() ?: continue
-                strokes += DrawnStroke(CompletableDeferred(saved.meta.id), ink)
+                strokes += DrawnStroke(CompletableDeferred(saved.meta.id), ink, saved.tool)
             }
         } catch (e: CancellationException) {
             throw e
@@ -177,7 +174,7 @@ private fun InkPageScreen(services: AppServices?, modifier: Modifier = Modifier)
         scope.launch {
             for (d in drawn) {
                 try {
-                    val newStroke = d.ink.toNewStroke() ?: throw IllegalStateException("trazo vacío")
+                    val newStroke = d.ink.toNewStroke(d.tool) ?: throw IllegalStateException("trazo vacío")
                     if (s == null || page == null) throw IllegalStateException("la página no está lista")
                     d.id.complete(s.ink.add(page, newStroke).meta.id)
                 } catch (e: CancellationException) {
@@ -235,9 +232,6 @@ private fun InkPageScreen(services: AppServices?, modifier: Modifier = Modifier)
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
-            OutlinedButton(onClick = { eraserMode = !eraserMode }, modifier = Modifier.padding(end = 8.dp)) {
-                Text(if (eraserMode) "Modo: BORRADOR" else "Modo: LÁPIZ")
-            }
             OutlinedButton(onClick = { undo() }, enabled = undoStack.isNotEmpty(), modifier = Modifier.padding(end = 8.dp)) {
                 Text("Deshacer")
             }
@@ -246,6 +240,13 @@ private fun InkPageScreen(services: AppServices?, modifier: Modifier = Modifier)
             }
             Button(onClick = { clearPage() }) { Text("Limpiar") }
         }
+
+        InkToolbar(
+            settings = toolSettings,
+            eraserMode = eraserMode,
+            onSettings = { toolSettings = it },
+            onEraserMode = { eraserMode = it },
+        )
 
         BoxWithConstraints(
             modifier = Modifier.weight(1f).fillMaxWidth(),
@@ -319,7 +320,8 @@ private fun InkPageScreen(services: AppServices?, modifier: Modifier = Modifier)
                     defaultBrush = if (loaded) brush else null,
                     pointerEventToWorldTransform = screenToWorld,
                     onStrokesFinished = { finished ->
-                        val drawn = finished.map { DrawnStroke(CompletableDeferred(), it) }
+                        val tool = toolSettings.tool
+                        val drawn = finished.map { DrawnStroke(CompletableDeferred(), it, tool) }
                         strokes.addAll(drawn)
                         pushAction(UserAction(ActionKind.DRAW, drawn))
                         persistNew(drawn)
