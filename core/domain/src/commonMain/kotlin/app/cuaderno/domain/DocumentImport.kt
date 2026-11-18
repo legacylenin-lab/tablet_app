@@ -65,4 +65,13 @@ interface PdfEngine {
      * proporción de la página. Lanza una excepción si no se puede.
      */
     suspend fun renderPage(sha256: String, pageIndex: Int, widthPx: Int): RenderedPage
+
+    /**
+     * Dibuja solo un rectángulo de la página, como si la página entera midiera [pageWidthPx] de ancho:
+     * desde ([left], [top]) y de [width] × [height] píxeles. Sirve para el zoom: se dibuja nítido solo
+     * lo que se ve, sin crear una imagen gigante de la página entera.
+     */
+    suspend fun renderRegion(
+        sha256: String, pageIndex: Int, pageWidthPx: Int, left: Int, top: Int, width: Int, height: Int,
+    ): RenderedPage
 }

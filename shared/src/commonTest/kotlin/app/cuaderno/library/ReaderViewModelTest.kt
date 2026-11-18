@@ -1,7 +1,9 @@
 package app.cuaderno.library
 
+import app.cuaderno.ink.PageViewport
 import app.cuaderno.testing.FakeDocumentRepository
 import app.cuaderno.testing.FakePdfEngine
+import app.cuaderno.testing.RegionRequest
 import app.cuaderno.testing.testDocument
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -18,6 +20,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -39,7 +42,7 @@ class ReaderViewModelTest {
         val vm = reader(lastRead = 3)
         assertEquals("Página 4 de 5", vm.state.value.nav.label)
         assertTrue(engine.rendered.isEmpty())
-        vm.onWidth(800)
+        vm.onSize(800, 1000)
         assertEquals(listOf(3 to 800), engine.rendered)
         assertNotNull(vm.state.value.image)
         assertEquals(3, vm.state.value.imageIndex)
@@ -49,7 +52,7 @@ class ReaderViewModelTest {
     @Test
     fun lasFlechasPasanPaginaSinSalirseDelDocumento() = runTest {
         val vm = reader(pages = 2)
-        vm.onWidth(500)
+        vm.onSize(500, 1000)
         vm.onPrevious()
         assertEquals(0, vm.state.value.index)
         vm.onNext()
@@ -61,16 +64,16 @@ class ReaderViewModelTest {
     @Test
     fun cambiarElAnchoVuelveADibujar() = runTest {
         val vm = reader()
-        vm.onWidth(500)
-        vm.onWidth(500)
-        vm.onWidth(900)
+        vm.onSize(500, 1000)
+        vm.onSize(500, 1000)
+        vm.onSize(900, 1000)
         assertEquals(listOf(0 to 500, 0 to 900), engine.rendered)
     }
 
     @Test
     fun recuerdaLaPaginaSoloCuandoElUsuarioSeDetiene() = runTest {
         val vm = reader()
-        vm.onWidth(500)
+        vm.onSize(500, 1000)
         vm.onNext()
         vm.onNext()
         advanceTimeBy(500)
@@ -87,7 +90,7 @@ class ReaderViewModelTest {
     fun siNoSePuedeDibujarLoAvisa() = runTest {
         engine.failWith = IllegalStateException("archivo borrado")
         val vm = reader()
-        vm.onWidth(500)
+        vm.onSize(500, 1000)
         assertTrue("archivo borrado" in assertNotNull(vm.state.value.message))
         assertFalse(vm.state.value.loading)
     }
@@ -95,7 +98,7 @@ class ReaderViewModelTest {
     @Test
     fun irAUnaPaginaLejanaDibujaSoloEsaYLaRecuerda() = runTest {
         val vm = reader(pages = 2000)
-        vm.onWidth(500)
+        vm.onSize(500, 1000)
         vm.onGoToClick()
         assertTrue(vm.state.value.goToDialog)
         vm.onConfirmGoTo(" 1847 ")
@@ -143,5 +146,73 @@ class ReaderViewModelTest {
     fun unaPaginaGuardadaFueraDeRangoSeAjusta() = runTest {
         val vm = reader(pages = 3, lastRead = 9)
         assertEquals("Página 3 de 3", vm.state.value.nav.label)
+    }
+
+    @Test
+    fun conZoomDibujaNitidoSoloLoQueSeVeAlQuedarseQuieto() = runTest {
+        val vm = reader()
+        vm.onSize(1000, 1200) // la página mide 1000 × 1500 con zoom 1
+        vm.onViewport(PageViewport(2f, -500f, -600f))
+        assertNull(vm.state.value.detail)
+        advanceTimeBy(250)
+        runCurrent()
+        assertEquals(listOf(RegionRequest(page = 0, pageWidthPx = 2000, left = 500, top = 600, width = 1000, height = 1200)), engine.regions)
+        val detail = assertNotNull(vm.state.value.detail)
+        assertEquals(2f, detail.zoom)
+        assertEquals(500, detail.left)
+    }
+
+    @Test
+    fun mientrasLosDedosSeMuevenNoDibujaCadaPaso() = runTest {
+        val vm = reader()
+        vm.onSize(1000, 1200)
+        for (i in 1..10) {
+            vm.onViewport(PageViewport(1f + i * 0.2f, -10f * i, 0f))
+            advanceTimeBy(50)
+        }
+        advanceTimeBy(250)
+        runCurrent()
+        assertEquals(1, engine.regions.size)
+        assertEquals(3000, engine.regions.single().pageWidthPx)
+    }
+
+    @Test
+    fun conZoomDeCienPorCientoNoHaceFaltaLaParteNitida() = runTest {
+        val vm = reader()
+        vm.onSize(1000, 1200)
+        vm.onViewport(PageViewport(1f, 0f, -200f))
+        advanceTimeBy(250)
+        runCurrent()
+        assertTrue(engine.regions.isEmpty())
+        assertNull(vm.state.value.detail)
+    }
+
+    @Test
+    fun cambiarDePaginaOAjustarVuelveAlCienPorCiento() = runTest {
+        val vm = reader()
+        vm.onSize(1000, 1200)
+        vm.onViewport(PageViewport(3f, -100f, -100f))
+        advanceTimeBy(250)
+        runCurrent()
+        vm.onNext()
+        assertEquals(1f, vm.state.value.viewport.zoom)
+        assertNull(vm.state.value.detail)
+
+        vm.onViewport(PageViewport(2f, 0f, 0f))
+        vm.onFit()
+        advanceTimeBy(250)
+        runCurrent()
+        assertEquals(PageViewport(1f, 0f, 0f), vm.state.value.viewport)
+        assertEquals(1, engine.regions.size) // el de la página anterior; el de después de «Ajustar» se canceló
+    }
+
+    @Test
+    fun laParteVisibleNoIncluyeLoQueQuedaFueraDeLaHoja() {
+        // Página más baja que la pantalla: queda centrada y sobra espacio arriba y abajo.
+        assertEquals(
+            Region(pageWidthPx = 1200, left = 100, top = 0, width = 1000, height = 600),
+            ReaderViewModel.visibleRegion(PageViewport(1.2f, -100f, 300f), 1000f, 500f, 1000f, 1200f),
+        )
+        assertNull(ReaderViewModel.visibleRegion(PageViewport(2f, -5000f, 0f), 1000f, 500f, 1000f, 1200f))
     }
 }

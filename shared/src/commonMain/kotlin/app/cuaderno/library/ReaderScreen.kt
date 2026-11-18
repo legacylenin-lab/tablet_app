@@ -1,7 +1,8 @@
 package app.cuaderno.library
 
-import androidx.compose.foundation.Image
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -9,8 +10,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.ScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
@@ -31,11 +30,15 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import kotlin.math.roundToInt
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.cuaderno.AppServices
@@ -46,8 +49,8 @@ import app.cuaderno.model.Document
 expect fun RenderedPage.toImageBitmap(): ImageBitmap
 
 /**
- * Lector de PDF (RF-12): una página a la vez, a lo ancho de la pantalla, con flechas y «Página X
- * de N». Abre donde el usuario se quedó. Si la página es más alta que la pantalla, se desplaza.
+ * Lector de PDF (RF-12): una página a la vez, a lo ancho de la pantalla, con flechas, «Ir a…», zoom y «Página X
+ * de N». Abre donde el usuario se quedó. Un dedo desplaza la hoja y dos dedos la amplían.
  */
 @Composable
 fun ReaderScreen(
@@ -82,6 +85,9 @@ fun ReaderScreen(
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
+            OutlinedButton(onClick = viewModel::onFit, enabled = state.viewport.zoom > 1f, modifier = Modifier.padding(end = 8.dp)) {
+                Text("Ajustar (${(state.viewport.zoom * 100).roundToInt()}%)")
+            }
             OutlinedButton(onClick = viewModel::onGoToClick, enabled = total > 1, modifier = Modifier.padding(end = 8.dp)) {
                 Text("Ir a…")
             }
@@ -91,25 +97,56 @@ fun ReaderScreen(
             OutlinedButton(onClick = viewModel::onNext, enabled = state.nav.canGoForward) { Text("▶") }
         }
 
-        BoxWithConstraints(modifier = Modifier.fillMaxWidth().weight(1f)) {
-            val widthPx = with(LocalDensity.current) { maxWidth.roundToPx() }
-            LaunchedEffect(widthPx) { viewModel.onWidth(widthPx) }
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth().weight(1f).clipToBounds()) {
+            val viewW = constraints.maxWidth
+            val viewH = constraints.maxHeight
+            LaunchedEffect(viewW, viewH) { viewModel.onSize(viewW, viewH) }
 
             val image = state.image
             val bitmap = remember(image) { image?.toImageBitmap() }
-            // La hoja vuelve arriba al cambiar de página.
-            val scroll = remember(state.imageIndex) { ScrollState(0) }
-            if (bitmap == null) {
+            val detail = state.detail
+            val detailBitmap = remember(detail) { detail?.image?.toImageBitmap() }
+            if (image == null || bitmap == null) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(if (state.message != null) "" else "Abriendo la página…")
                 }
             } else {
-                Image(
-                    bitmap = bitmap,
-                    contentDescription = state.nav.label,
-                    contentScale = ContentScale.FillWidth,
-                    modifier = Modifier.fillMaxWidth().verticalScroll(scroll),
-                )
+                val fitW = image.width.toFloat()
+                val fitH = image.height.toFloat()
+                Canvas(
+                    modifier = Modifier.fillMaxSize().pointerInput(viewW, viewH) {
+                        // Un dedo desplaza; dos dedos amplían alrededor del punto entre ellos (como en los cuadernos).
+                        detectTransformGestures { centroid, pan, zoom, _ ->
+                            val s = viewModel.state.value
+                            val page = s.image ?: return@detectTransformGestures
+                            val w = page.width.toFloat()
+                            val h = page.height.toFloat()
+                            val vw = viewW.toFloat()
+                            val vh = viewH.toFloat()
+                            viewModel.onViewport(
+                                s.viewport.clamped(w, h, vw, vh).transformed(centroid.x, centroid.y, pan.x, pan.y, zoom, w, h, vw, vh),
+                            )
+                        }
+                    },
+                ) {
+                    val vp = state.viewport.clamped(fitW, fitH, size.width, size.height)
+                    drawImage(
+                        bitmap,
+                        dstOffset = IntOffset(vp.offsetX.roundToInt(), vp.offsetY.roundToInt()),
+                        dstSize = IntSize((fitW * vp.zoom).roundToInt(), (fitH * vp.zoom).roundToInt()),
+                        filterQuality = FilterQuality.Medium,
+                    )
+                    // La parte nítida se dibujó para otro zoom o posición: se acomoda a la actual.
+                    if (detail != null && detailBitmap != null) {
+                        val k = vp.zoom / detail.zoom
+                        drawImage(
+                            detailBitmap,
+                            dstOffset = IntOffset((vp.offsetX + detail.left * k).roundToInt(), (vp.offsetY + detail.top * k).roundToInt()),
+                            dstSize = IntSize((detail.image.width * k).roundToInt(), (detail.image.height * k).roundToInt()),
+                            filterQuality = FilterQuality.Medium,
+                        )
+                    }
+                }
             }
         }
 

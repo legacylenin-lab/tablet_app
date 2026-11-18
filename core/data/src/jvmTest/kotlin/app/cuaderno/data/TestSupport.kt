@@ -26,6 +26,10 @@ class FakePdfEngine(var pages: Int = 10, var failWith: Exception? = null) : PdfE
 
     override suspend fun renderPage(sha256: String, pageIndex: Int, widthPx: Int): RenderedPage =
         RenderedPage(widthPx, widthPx, IntArray(widthPx * widthPx) { -1 })
+
+    override suspend fun renderRegion(
+        sha256: String, pageIndex: Int, pageWidthPx: Int, left: Int, top: Int, width: Int, height: Int,
+    ): RenderedPage = RenderedPage(width, height, IntArray(width * height) { -1 })
 }
 
 /** Genera `testId(1000)`, `testId(1001)`… para que las pruebas sean predecibles. */
