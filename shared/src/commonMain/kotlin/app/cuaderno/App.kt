@@ -24,7 +24,9 @@ fun App(services: AppServices? = null) {
             services == null -> InkPrototypeScreen(null)
             textTest -> RichTextPrototypeScreen(onBack = { textTest = false })
             current == null -> NotebookListScreen(services, onOpen = { open = it }, onTextTest = { textTest = true })
-            else -> InkPrototypeScreen(services, notebook = current, onBack = { open = null })
+            else -> ScopedViewModels(key = current.meta.id) {
+                InkPrototypeScreen(services, notebook = current, onBack = { open = null })
+            }
         }
     }
 }

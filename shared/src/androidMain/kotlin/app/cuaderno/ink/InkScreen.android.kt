@@ -21,9 +21,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.rememberCoroutineScope
@@ -49,8 +47,10 @@ import app.cuaderno.AppServices
 import app.cuaderno.domain.EnsureFirstPage
 import app.cuaderno.model.EntityId
 import app.cuaderno.model.Notebook
-import app.cuaderno.model.PageTemplate
+import app.cuaderno.notebooks.NotebookPagesViewModel
 import app.cuaderno.notebooks.PageNav
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import app.cuaderno.model.StrokeTool
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
@@ -447,40 +447,31 @@ private class PageControls(
 
 /**
  * Las páginas de un cuaderno: muestra una a la vez, con flechas y «Página nueva». Cada página
- * carga y guarda sus propios trazos (se vuelve a crear la pantalla al cambiar de página).
+ * carga y guarda sus propios trazos (se vuelve a crear la pantalla al cambiar de página). Qué
+ * página se ve y qué hace cada botón lo decide [NotebookPagesViewModel].
  */
 @Composable
-private fun NotebookPagesScreen(services: AppServices, notebook: Notebook, modifier: Modifier = Modifier) {
-    val scope = rememberCoroutineScope()
-    val pages by services.pages.observeByNotebook(notebook.meta.id).collectAsState(initial = null)
-    var index by remember { mutableIntStateOf(0) }
-    var confirmDelete by remember { mutableStateOf(false) }
-
-    // Un cuaderno nuevo no tiene páginas: se le crea la primera.
-    LaunchedEffect(pages) {
-        if (pages?.isEmpty() == true) EnsureFirstPage(services.notebooks, services.pages).forNotebook(notebook.meta.id)
-    }
-
-    val list = pages
-    if (list.isNullOrEmpty()) {
-        Text("Abriendo el cuaderno…", modifier = modifier.padding(16.dp))
+private fun NotebookPagesScreen(
+    services: AppServices,
+    notebook: Notebook,
+    modifier: Modifier = Modifier,
+    viewModel: NotebookPagesViewModel = viewModel(key = notebook.meta.id.toString()) {
+        NotebookPagesViewModel(notebook.meta.id, services.notebooks, services.pages)
+    },
+) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val currentPage = state.currentPage
+    if (currentPage == null) {
+        Text(state.message ?: "Abriendo el cuaderno…", modifier = modifier.padding(16.dp))
         return
     }
-    val current = PageNav.clampIndex(index, list.size)
-    val currentPage = list[current]
-    if (confirmDelete) {
+    if (state.confirmDelete) {
         AlertDialog(
-            onDismissRequest = { confirmDelete = false },
-            title = { Text("¿Eliminar la ${PageNav.at(current, list.size).label.lowercase()}?") },
+            onDismissRequest = viewModel::onDismissDelete,
+            title = { Text("¿Eliminar la ${state.nav.label.lowercase()}?") },
             text = { Text("La página y lo que escribiste en ella dejarán de verse.") },
-            confirmButton = {
-                Button(onClick = {
-                    confirmDelete = false
-                    index = PageNav.indexAfterDelete(current, list.size)
-                    scope.launch { services.pages.delete(currentPage.meta.id) }
-                }) { Text("Eliminar") }
-            },
-            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Cancelar") } },
+            confirmButton = { Button(onClick = viewModel::onConfirmDelete) { Text("Eliminar") } },
+            dismissButton = { TextButton(onClick = viewModel::onDismissDelete) { Text("Cancelar") } },
         )
     }
     key(currentPage.meta.id) {
@@ -488,22 +479,12 @@ private fun NotebookPagesScreen(services: AppServices, notebook: Notebook, modif
             services, notebook, modifier,
             fixedPageId = currentPage.meta.id,
             controls = PageControls(
-                nav = PageNav.at(current, list.size),
-                onPrevious = { index = current - 1 },
-                onNext = { index = current + 1 },
-                onDuplicate = {
-                    scope.launch {
-                        services.pages.duplicate(currentPage.meta.id)
-                        index = current + 1
-                    }
-                },
-                onDelete = { confirmDelete = true },
-                onAdd = {
-                    scope.launch {
-                        services.pages.add(notebook.meta.id, PageTemplate.BLANK, after = currentPage.meta.id)
-                        index = current + 1
-                    }
-                },
+                nav = state.nav,
+                onPrevious = viewModel::onPrevious,
+                onNext = viewModel::onNext,
+                onAdd = viewModel::onAdd,
+                onDuplicate = viewModel::onDuplicate,
+                onDelete = viewModel::onDeleteClick,
             ),
         )
     }

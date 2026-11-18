@@ -18,30 +18,22 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import app.cuaderno.AppServices
 import app.cuaderno.model.Notebook
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.launch
-
-/** Qué diálogo está abierto en la lista de cuadernos. */
-private sealed interface NotebookDialog {
-    data object Create : NotebookDialog
-    data class Rename(val notebook: Notebook) : NotebookDialog
-    data class Delete(val notebook: Notebook) : NotebookDialog
-}
 
 /**
  * Lista de cuadernos (RF-01): crear, abrir, renombrar y eliminar. Eliminar es un borrado suave
- * (el cuaderno deja de verse pero sus datos siguen guardados).
+ * (el cuaderno deja de verse pero sus datos siguen guardados). Solo dibuja: lo que pasa al tocar
+ * cada botón lo decide [NotebookListViewModel].
  */
 @Composable
 fun NotebookListScreen(
@@ -49,33 +41,19 @@ fun NotebookListScreen(
     onOpen: (Notebook) -> Unit,
     onTextTest: () -> Unit = {},
     modifier: Modifier = Modifier,
+    viewModel: NotebookListViewModel = viewModel { NotebookListViewModel(services.notebooks) },
 ) {
-    val scope = rememberCoroutineScope()
-    val notebooks by services.notebooks.observeAll().collectAsState(initial = null)
-    var dialog by remember { mutableStateOf<NotebookDialog?>(null) }
-    var message by remember { mutableStateOf<String?>(null) }
-
-    fun run(block: suspend () -> Unit) {
-        scope.launch {
-            try {
-                block()
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                message = "No se pudo guardar el cambio: ${e.message}"
-            }
-        }
-    }
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
     Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Mis cuadernos", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
             OutlinedButton(onClick = onTextTest, modifier = Modifier.padding(end = 8.dp)) { Text("Probar texto") }
-            Button(onClick = { dialog = NotebookDialog.Create }) { Text("Nuevo cuaderno") }
+            Button(onClick = viewModel::onCreateClick) { Text("Nuevo cuaderno") }
         }
-        message?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 8.dp)) }
+        state.message?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 8.dp)) }
 
-        val list = notebooks
+        val list = state.notebooks
         when {
             list == null -> Text("Abriendo…", modifier = Modifier.padding(top = 16.dp))
             list.isEmpty() -> Text(
@@ -93,10 +71,10 @@ fun NotebookListScreen(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(notebook.title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                            OutlinedButton(onClick = { dialog = NotebookDialog.Rename(notebook) }, modifier = Modifier.padding(end = 8.dp)) {
+                            OutlinedButton(onClick = { viewModel.onRenameClick(notebook) }, modifier = Modifier.padding(end = 8.dp)) {
                                 Text("Renombrar")
                             }
-                            OutlinedButton(onClick = { dialog = NotebookDialog.Delete(notebook) }) { Text("Eliminar") }
+                            OutlinedButton(onClick = { viewModel.onDeleteClick(notebook) }) { Text("Eliminar") }
                         }
                     }
                 }
@@ -104,43 +82,33 @@ fun NotebookListScreen(
         }
     }
 
-    when (val d = dialog) {
+    when (val d = state.dialog) {
         null -> Unit
         NotebookDialog.Create -> TitleDialog(
             heading = "Nuevo cuaderno",
             confirmLabel = "Crear",
             initial = "",
-            onDismiss = { dialog = null },
-            onConfirm = { title ->
-                dialog = null
-                run { services.notebooks.create(title) }
-            },
+            onDismiss = viewModel::onDismissDialog,
+            onConfirm = viewModel::onConfirmTitle,
         )
         is NotebookDialog.Rename -> TitleDialog(
             heading = "Renombrar cuaderno",
             confirmLabel = "Guardar",
             initial = d.notebook.title,
-            onDismiss = { dialog = null },
-            onConfirm = { title ->
-                dialog = null
-                run { services.notebooks.rename(d.notebook.meta.id, title) }
-            },
+            onDismiss = viewModel::onDismissDialog,
+            onConfirm = viewModel::onConfirmTitle,
         )
         is NotebookDialog.Delete -> AlertDialog(
-            onDismissRequest = { dialog = null },
+            onDismissRequest = viewModel::onDismissDialog,
             title = { Text("¿Eliminar «${d.notebook.title}»?") },
             text = { Text("El cuaderno dejará de verse en la lista.") },
-            confirmButton = {
-                Button(onClick = {
-                    dialog = null
-                    run { services.notebooks.delete(d.notebook.meta.id) }
-                }) { Text("Eliminar") }
-            },
-            dismissButton = { TextButton(onClick = { dialog = null }) { Text("Cancelar") } },
+            confirmButton = { Button(onClick = viewModel::onConfirmDelete) { Text("Eliminar") } },
+            dismissButton = { TextButton(onClick = viewModel::onDismissDialog) { Text("Cancelar") } },
         )
     }
 }
 
+/** Diálogo con un campo de nombre. Lo que se va escribiendo es estado de la pantalla, no del ViewModel. */
 @Composable
 private fun TitleDialog(
     heading: String,
