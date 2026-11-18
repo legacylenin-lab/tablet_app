@@ -40,6 +40,8 @@ kotlin {
         }
         jvmMain.dependencies {
             implementation(libs.sqldelight.sqliteDriver)
+            // Motor de PDF de Windows (docs/arquitectura.md §8 y §11; prototipo P-1).
+            implementation(libs.pdfbox)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

@@ -391,7 +391,7 @@ Versiones exactas fijadas el **17/11/2026**, tal como están en `gradle/libs.ver
 | Navigation Compose (KMP) | — | Apache 2.0 | Aprobada; se fija al adoptarla |
 | compose-rich-editor | 1.2.1 | Apache 2.0 | **Adoptada** (18/11/2026): compila en Android y PC, resiste ida y vuelta por HTML y se probó en la tablet. Los títulos se normalizan a `h1`–`h3` con `RichTextHtml` |
 | androidx.ink | — | Apache 2.0 | Aprobada. **Adoptada** en la versión estable 1.0.0 tras el prototipo P-0 (17/11/2026). Trae como dependencias transitivas `androidx.input:input-motionprediction` 1.0.0 (predicción del trazo) y `androidx.graphics:graphics-core` 1.0.4 (dibujo en el búfer frontal); `InProgressStrokes` las usa por dentro (PQ-21) |
-| Apache PDFBox | — | Apache 2.0 | A validar en P-1 |
+| Apache PDFBox | 3.0.8 | Apache 2.0 | **En validación (P-1, 18/11/2026):** fijada en `core:data` (`jvmMain`) para el motor de PDF de Windows (`PdfBoxEngine`). Se adopta o se descarta al terminar el P-1 |
 | PdfBox-Android | — | Apache 2.0 | A validar en P-2 |
 | Ktor, JmDNS, ZXing, CameraX, ML Kit | — | Apache 2.0 | Solo cuando llegue su versión |
 
