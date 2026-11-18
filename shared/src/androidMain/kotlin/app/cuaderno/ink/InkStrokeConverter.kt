@@ -42,7 +42,12 @@ internal fun Stroke.toNewStroke(tool: StrokeTool = StrokeTool.PEN): NewStroke? {
 }
 
 /** Reconstruye el trazo de la tinta a partir de lo guardado. Devuelve `null` si los datos no sirven. */
-internal fun ModelStroke.toInkStroke(): Stroke? = try {
+internal fun ModelStroke.toInkStroke(): Stroke? = inkStrokeOf(tool, colorArgb, baseWidth, points)
+
+/** El trazo de la tinta para un trazo de la página (ver [InkPageViewModel]). `null` si los datos no sirven. */
+internal fun PageStroke.toInkStroke(): Stroke? = inkStrokeOf(tool, colorArgb, baseWidth, points)
+
+private fun inkStrokeOf(tool: StrokeTool, colorArgb: Int, baseWidth: Float, points: ByteArray): Stroke? = try {
     val decoded = InkConversion.forInk(StrokeCodec.decode(points))
     if (decoded.isEmpty()) {
         null
