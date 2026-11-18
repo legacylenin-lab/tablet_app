@@ -5,6 +5,8 @@ import android.graphics.Color
 import android.graphics.Matrix
 import android.graphics.pdf.PdfRenderer
 import android.os.ParcelFileDescriptor
+import android.os.SystemClock
+import android.util.Log
 import app.cuaderno.domain.PdfEngine
 import app.cuaderno.domain.RenderedPage
 import kotlinx.coroutines.CoroutineDispatcher
@@ -77,11 +79,16 @@ class AndroidPdfEngine(
         withContext(dispatcher) {
             lock.withLock {
                 ParcelFileDescriptor.open(files.fileFor(sha256), ParcelFileDescriptor.MODE_READ_ONLY).use { fd ->
+                    // Tiempos para medir el rendimiento (RNF-04, prototipo P-1): `adb logcat -s PdfTiming`.
+                    val start = SystemClock.elapsedRealtime()
                     val renderer = PdfRenderer(fd)
+                    val opened = SystemClock.elapsedRealtime()
                     try {
                         block(renderer)
                     } finally {
                         renderer.close()
+                        val done = SystemClock.elapsedRealtime()
+                        Log.d(TIMING_TAG, "abrir ${opened - start} ms, trabajo ${done - opened} ms")
                     }
                 }
             }
@@ -93,5 +100,7 @@ class AndroidPdfEngine(
 
         /** Con zoom, la página «mide» mucho más que la pantalla, pero solo se dibuja un rectángulo. */
         const val MAX_PAGE_WIDTH = 40_000
+
+        const val TIMING_TAG = "PdfTiming"
     }
 }
