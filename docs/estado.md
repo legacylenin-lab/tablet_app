@@ -28,7 +28,7 @@
 - Nada abierto. Si el último commit (guardado de trazos) no aparece en el historial de Git, falta hacerlo.
 
 ## Siguiente
-- **Etapa 4:** (hechos y probados en la tablet: gesto «atrás» con `BackHandler`, PQ-23; botón del lápiz con un solo toque, PQ-20); luego bloques de texto sobre la página (RF-05, PC-01) y reordenar páginas. Antes de los bloques de texto: pasar la lista de cuadernos y el lienzo a ViewModels en código común (PQ-24, aprobado).
+- **Etapa 4 (siguiente sesión: PQ-24, ViewModels, en 3 pasos con prueba en la tablet):** (hechos y probados en la tablet: gesto «atrás» con `BackHandler`, PQ-23; botón del lápiz con un solo toque, PQ-20); luego bloques de texto sobre la página (RF-05, PC-01) y reordenar páginas. Antes de los bloques de texto: pasar la lista de cuadernos y el lienzo a ViewModels en código común (PQ-24, aprobado).
 - **Antes de cerrar la v1:** medir la latencia con cámara lenta contra Nebo (PQ-21, `plan-de-pruebas.md` §7.1).
 - Al inicio de cada etapa: revisar si ya hay una versión estable de Compose Material 3 (PQ-04b).
 - Para la etapa 6: último paso de la restauración y la interfaz delgada de `BackupService` en `core:domain` (PQ-14, PQ-17).
