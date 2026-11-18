@@ -120,6 +120,7 @@
 | CP-14 | RF-18, RF-27 | Exportar e imprimir una nota A4 y un PDF anotado desde Android y Windows; elegir el rango y las copias | Se abre el diálogo nativo y el resultado coincide con lo que se ve en pantalla. |
 | CP-15 | RF-27 | Imprimir un documento de 500 páginas | No se agota la memoria y se muestra el progreso. |
 | CP-16 | RF-28, RNF-21 | En la PC con LibreOffice, importar los DOCX de prueba y seguir usando la app mientras convierte; repetir con el dañado y con uno que supere el tiempo máximo | PDF fiel. **La interfaz no se congela** (medir con el profiler de Android Studio o con el contador de cuadros). Los errores se cancelan y muestran la guía. **Si falla la fluidez, RF-28 se descarta.** |
+| CP-17 | RF-05 | En una página con trazos: agregar textos, escribir con el teclado y a mano (modo Lápiz), moverlos y cambiar su ancho; eliminar uno y deshacer; «Borrar trazos» y «Borrar textos»; cambiar de página y reabrir la app | Los textos no se enciman al crearlos, el lápiz escribe tinta encima de los que no se editan, el dedo nunca escribe y todo persiste. Deshacer sigue el orden de trazos y textos. |
 
 **Casos unitarios obligatorios de la etapa 2** (base de todo lo demás):
 
@@ -148,6 +149,8 @@
 | CU-06 | Hecho | `core/model/.../EntityIdTest.kt` (5 pruebas: parse válido e inválido) y `core/domain/.../RandomIdGeneratorTest.kt` (2 pruebas: 10.000 ids únicos con formato correcto). |
 | CU-07 | Hecho | `core/model/.../TitleSortTest.kt` (9 pruebas; corren en JVM y en el destino Android) y pruebas de orden y recálculo en `SqlNotebookRepositoryTest` (3) y `SqlLibraryRepositoryTest` (2). |
 | CU-08 | Hecho | Persistencia de trazos. `core/data/.../EnsureFirstPageTest.kt` (5 pruebas: primera página al arrancar), `shared/.../InkConversionTest.kt` (8 pruebas: conversión pura de puntos) y `shared/src/androidDeviceTest/.../InkStrokeConverterTest.kt` (7 pruebas instrumentadas, ejecutadas el 17/11/2026 en la tablet Lenovo TB336ZU: trazo de tinta → bytes guardados → trazo reconstruido, con presión, trazo de un punto y datos dañados). Se ejecutan con `./gradlew :shared:connectedAndroidDeviceTest` con un dispositivo conectado. |
+| CU-09 | Hecho | ViewModels en código común (PQ-24), con repositorios en memoria: `NotebookListViewModelTest` (6), `NotebookPagesViewModelTest` (8), `InkPageViewModelTest` (11: trazos, borrador, deshacer mezclado con textos, botón del lápiz) y `TextBlocksViewModelTest` (18: crear sin encimar, guardado tras dejar de teclear, HTML acordado, mover y ancho, eliminar y deshacer, modos Lápiz/Teclado). Más `RichTextHtmlTest.reconoceUnTextoVacio`. |
+| CP-17 | Probado a mano | 17/11/2026, tablet real: crear, escribir (teclado y a mano), formato, mover, ancho, eliminar y deshacer, borrar trazos y textos por separado, modos Lápiz y Teclado con dedo y lápiz, persistencia al cambiar de página y al reabrir. La conversión a mano tarda cerca de 1 s en mostrar la línea roja en los dos modos: la dibuja el teclado de Android, no la app. |
 | CP-02 (parcial) | Probado a mano | 17/11/2026, tablet real: escribir con el lápiz, cerrar la app por completo y reabrirla conserva los trazos tal como estaban; el borrado también persiste; deshacer y rehacer funcionan. Falta probar color y grosor seleccionables (RF-02). |
 
 Además: `EntitiesTest.kt` (8 pruebas) cubre los metadatos comunes y el borrado suave.
@@ -272,7 +275,8 @@ Toda tarea de construcción y prueba documentada se ejecuta en la PC con ESET us
 | RF-01 | CP-01, CU-03, CU-04 |
 | RF-02 | CP-02, CU-02, P-0, PA-01 |
 | RF-03 | CP-03, P-0, PA-01 |
-| RF-04 | CP-04 |
+| RF-04 | CP-04, CU-09 |
+| RF-05 | CP-17, CU-09 |
 | RF-08 | CP-05, CU-03 |
 | RF-09 | CP-12 |
 | RF-10, RF-12 | CP-06, P-1 |

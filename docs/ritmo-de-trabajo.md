@@ -36,6 +36,10 @@ Lista breve, para no volver a explicarlos desde cero. Ejemplos: commit, compilar
 - Probar en la tablet real: conectada por USB, con la app instalada por el asistente; el dueño la usa con el lápiz y cuenta lo que ve (muy buenas descripciones: dice qué hizo y qué pasó).
 - Crear, renombrar, eliminar y abrir cuadernos, y pasar de página, desde la app (probado en la tablet).
 - Cerrar la app por completo y reabrirla para comprobar que algo se guardó.
+- Idea de ViewModel: el «cerebro» de una pantalla, que decide qué pasa, mientras la pantalla solo dibuja (explicado con la analogía del camarero y el cocinero).
+- Commit en dos partes con GitHub Desktop: desmarcar un archivo para guardarlo después en otro commit (lo hizo bien 3 veces).
+- Mandar capturas de pantalla de la tablet para mostrar un problema.
+- Teclado flotante de Android: es un ajuste del teclado, no de la app.
 
 ## 3. Lo que funciona y lo que no
 
@@ -56,6 +60,11 @@ Observaciones acumuladas, cada una con su fecha.
 | 17/11/2026 | Con 3 horas disponibles aguantó 9 commits en una conversación; cada paso tuvo su prueba en la tablet, que encontró 3 fallos reales que las pruebas automáticas no veían (memoria con zoom, guardado al cambiar de página) | Mantener el paso pequeño con prueba en la tablet; el texto con teclado (más grande) empieza en sesión nueva. Verificar siempre que la tablet esté autorizada antes de decir "instalada" |
 | 18/11/2026 | Ante la pregunta de cómo debía funcionar el texto, eligió la opción más completa (texto y lápiz juntos), que los requisitos dejan para después | Cuando una elección del dueño contradiga los requisitos, explicar el costo en una frase, registrar la propuesta y seguir con trabajo que no dependa de ella |
 | 18/11/2026 | Para encontrar un fallo del botón del lápiz funcionó pedir un gesto a la vez y leer el registro de la tablet después de cada uno | Para fallos de hardware, un gesto por vez con "listo" del dueño y lectura del registro por parte del asistente |
+| 17/11/2026 | Sus informes de prueba, punto por punto, y una captura de pantalla permitieron encontrar causas exactas (por ejemplo, un botón apretado que crecía hacia abajo) | Seguir pidiendo pruebas numeradas; cuando algo se vea raro, pedirle una captura de pantalla |
+| 17/11/2026 | Una idea suya (el punto 6, «dos modos») se entendió mal dos veces: primero se ofrecieron opciones A/B que no eran lo que imaginaba, y se construyó un modo «tinta» que no quería | Antes de construir una idea nueva del dueño, repetirla con sus propias palabras y preguntar «¿es esto?»; ofrecer opciones solo si su descripción admite varias lecturas |
+| 17/11/2026 | Aunque se le recomendó cerrar tras 4 y 6 commits, prefirió seguir; la sesión llegó a 8 commits de código sin que se trabara | Recomendar el cierre una sola vez por bloque y respetar su decisión; él avisa cuando termina |
+| 17/11/2026 | El asistente empezó a editar archivos que iban en un commit que él aún no había hecho, y tuvo que deshacer esos cambios | No tocar archivos del próximo commit hasta comprobar con `git log` que ya se guardó |
+| 17/11/2026 | Preguntó por el mensaje del commit varias veces, aunque estaba en el texto anterior | Repetir siempre el mensaje del commit en un bloque propio justo antes de pedirle que guarde, aunque ya se haya dado |
 
 ## 4. Bitácora de sesiones
 
@@ -68,6 +77,7 @@ Se conservan las 10 más recientes; las anteriores se resumen en una línea por 
 | 17/11/2026 (2.ª sesión) | Sesión larga (unas 3 horas) | 3 y 4 | Etapa 3 completa (color, grosor, resaltador, dedo con zoom y desplazamiento). Etapa 4: lista de cuadernos y varias páginas por cuaderno. Fallos hallados en la tablet y corregidos: la tinta ignoraba color y tipo; la capa de tinta con zoom agotaba la memoria; los trazos se perdían al cambiar de página. 9 commits. | Etapa 4: texto con teclado (RF-04); borrar, duplicar y reordenar páginas |
 | 18/11/2026 | Sesión larga (3 horas o más) | 4 | Librería de texto enriquecido validada y adoptada (compose-rich-editor 1.2.1) con pantalla de prueba y limpieza del HTML a `h1`–`h3`; duplicar y eliminar páginas. El dueño pidió texto y lápiz en la misma página: se registró como propuesta PC-01 para Leyni, sin implementarla. 6 commits. | Esperar la decisión de Leyni sobre PC-01; luego poner el texto en la página |
 | 18/11/2026 (2.ª sesión) | Sesión media | 4 | Tras la revisión de Leyni (PC-01 aprobada; PQ-20, PQ-23 y PQ-24 decididos): gesto «atrás» con `BackHandler` (PQ-23) y botón del lápiz con un solo toque (PQ-20; se midió en la tablet que un toque manda la tecla 600 solo al soltar). 3 commits. | PQ-24: ViewModels en código común (lista de cuadernos, cuaderno y páginas, lienzo), y luego los bloques de texto (RF-05) |
+| 17/11/2026 (fecha del reloj de la PC) | Sesión muy larga (más de 3 horas) | 4 | PQ-24 completo: ViewModels de la lista de cuadernos, las páginas y el lienzo, sin cambios visibles. RF-05: cuadros de texto sobre la hoja (crear sin encimar, escribir con teclado o a mano, formato, mover, ancho, eliminar con deshacer, «Borrar trazos» y «Borrar textos» por separado, modos Lápiz y Teclado). Fallos hallados en la tablet y corregidos: cuadro difícil de acertar con el lápiz, textos encimados, botones apretados que empujaban la hoja, el dedo no cambiaba el modo. 8 commits de código y 1 de documentos. | Reordenar páginas (RF-08); quitar la pantalla «Probar texto»; esperar a Leyni con PQ-25 |
 
 ## 5. Resumen de sesiones anteriores
 
