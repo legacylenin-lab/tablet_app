@@ -3,6 +3,7 @@ package app.cuaderno.data
 import app.cuaderno.domain.IdGenerator
 import app.cuaderno.domain.PdfEngine
 import app.cuaderno.domain.PlatformFile
+import app.cuaderno.domain.RenderedPage
 import app.cuaderno.model.EntityId
 
 /** Identificador válido y predecible: `testId(1)`, `testId(2)`… */
@@ -22,6 +23,9 @@ class FakePdfEngine(var pages: Int = 10, var failWith: Exception? = null) : PdfE
         failWith?.let { throw it }
         return pages
     }
+
+    override suspend fun renderPage(sha256: String, pageIndex: Int, widthPx: Int): RenderedPage =
+        RenderedPage(widthPx, widthPx, IntArray(widthPx * widthPx) { -1 })
 }
 
 /** Genera `testId(1000)`, `testId(1001)`… para que las pruebas sean predecibles. */

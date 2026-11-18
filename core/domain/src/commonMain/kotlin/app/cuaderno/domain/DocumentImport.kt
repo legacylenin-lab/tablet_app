@@ -45,8 +45,24 @@ interface DocumentFileStore {
     suspend fun discard(sha256: String)
 }
 
+/**
+ * Una página de PDF convertida en imagen: [pixels] tiene `width × height` colores ARGB, fila por
+ * fila, con fondo blanco.
+ */
+class RenderedPage(val width: Int, val height: Int, val pixels: IntArray) {
+    init {
+        require(width > 0 && height > 0 && pixels.size == width * height) { "Imagen inválida: ${width}x$height" }
+    }
+}
+
 /** Motor de PDF de cada plataforma (§8). Lee los PDF ya guardados en `documents/`. */
 interface PdfEngine {
     /** Número de páginas del PDF guardado con ese hash. Lanza una excepción si no se puede abrir. */
     suspend fun pageCount(sha256: String): Int
+
+    /**
+     * Dibuja la página [pageIndex] (desde 0) con [widthPx] píxeles de ancho; el alto sale de la
+     * proporción de la página. Lanza una excepción si no se puede.
+     */
+    suspend fun renderPage(sha256: String, pageIndex: Int, widthPx: Int): RenderedPage
 }

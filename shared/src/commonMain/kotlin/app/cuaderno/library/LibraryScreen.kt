@@ -1,5 +1,6 @@
 package app.cuaderno.library
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -22,15 +23,17 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.cuaderno.AppServices
+import app.cuaderno.model.Document
 
 /**
- * Biblioteca (RF-10): la lista de PDF importados y el botón para importar uno nuevo. Abrir un PDF
- * para leerlo llega en el siguiente paso de la etapa 5.
+ * Biblioteca (RF-10): la lista de PDF importados y el botón para importar uno nuevo. Tocar un
+ * documento lo abre en el lector.
  */
 @Composable
 fun LibraryScreen(
     services: AppServices,
     onBack: () -> Unit,
+    onOpen: (Document) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: LibraryViewModel = viewModel { LibraryViewModel(services.documents) },
 ) {
@@ -64,7 +67,7 @@ fun LibraryScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 items(list, key = { it.meta.id.toString() }) { document ->
-                    Card(modifier = Modifier.fillMaxWidth()) {
+                    Card(modifier = Modifier.fillMaxWidth().clickable { onOpen(document) }) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Text(document.title, style = MaterialTheme.typography.titleMedium)
                             Text(

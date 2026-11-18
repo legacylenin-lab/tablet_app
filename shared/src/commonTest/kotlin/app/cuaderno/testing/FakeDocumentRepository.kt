@@ -49,7 +49,12 @@ class FakeDocumentRepository(initial: List<Document> = emptyList()) : DocumentRe
 
     override suspend fun add(newDocument: NewDocument): AddDocumentResult = error("no se usa")
 
-    override suspend fun setLastReadPage(id: EntityId, page: Int) = Unit
+    /** Páginas guardadas con [setLastReadPage], en orden. */
+    val savedPages = mutableListOf<Int>()
+
+    override suspend fun setLastReadPage(id: EntityId, page: Int) {
+        savedPages += page
+    }
 
     override suspend fun delete(id: EntityId) = Unit
 }

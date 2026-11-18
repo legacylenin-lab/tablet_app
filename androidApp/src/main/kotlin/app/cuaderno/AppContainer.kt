@@ -39,12 +39,14 @@ class AppContainer(context: Context) {
         val files = FileDocumentStore(File(appContext.filesDir, "documents"), Dispatchers.IO) { file ->
             (file as AndroidPlatformFile).open(appContext)
         }
+        val pdf = AndroidPdfEngine(files, Dispatchers.IO)
         services = AppServices(
             notebooks = SqlNotebookRepository(data, Dispatchers.IO),
             pages = SqlPageRepository(data, Dispatchers.IO),
             ink = SqlInkRepository(data, Dispatchers.IO),
             text = SqlTextBlockRepository(data, Dispatchers.IO),
-            documents = SqlDocumentRepository(data, Dispatchers.IO, files, AndroidPdfEngine(files, Dispatchers.IO)),
+            documents = SqlDocumentRepository(data, Dispatchers.IO, files, pdf),
+            pdf = pdf,
         )
     }
 }

@@ -4,6 +4,7 @@ import app.cuaderno.domain.DocumentRepository
 import app.cuaderno.domain.InkRepository
 import app.cuaderno.domain.NotebookRepository
 import app.cuaderno.domain.PageRepository
+import app.cuaderno.domain.PdfEngine
 import app.cuaderno.domain.TextBlockRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -23,5 +24,6 @@ class AppServices(
     val ink: InkRepository,
     val text: TextBlockRepository,
     val documents: DocumentRepository,
+    val pdf: PdfEngine,
     val saveScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
 )
