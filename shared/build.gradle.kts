@@ -32,6 +32,8 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             // Tinta de baja latencia (P-0). Solo Android: en la PC no se dibuja.
+            // Gesto «atrás» del sistema (PQ-23, aprobado por Leyni).
+            implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.ink.authoringCompose)
             implementation(libs.androidx.ink.brush)
             implementation(libs.androidx.ink.geometry)

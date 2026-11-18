@@ -1,5 +1,6 @@
 package app.cuaderno.ink
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -67,6 +68,7 @@ actual fun InkPrototypeScreen(services: AppServices?, notebook: Notebook?, onBac
         ) {
             if (onBack != null) {
                 OutlinedButton(onClick = onBack) { Text("← Cuadernos") }
+                BackHandler(onBack = onBack)
             } else {
                 Text("Motor de tinta:", style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(end = 8.dp))
                 if (useInk) {
