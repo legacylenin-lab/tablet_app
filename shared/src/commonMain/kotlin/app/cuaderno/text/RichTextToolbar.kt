@@ -1,6 +1,8 @@
 package app.cuaderno.text
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -19,10 +21,14 @@ import com.mohamedrejeb.richeditor.model.RichTextState
 
 private val TITLE_SIZE = TextUnit(2f, TextUnitType.Em)
 
-/** Botones de formato del texto enriquecido (RF-04). [trailing] agrega botones al final de la fila. */
+/**
+ * Botones de formato del texto enriquecido (RF-04). [trailing] agrega botones al final de la fila.
+ * Si no caben a lo ancho, la fila se desliza de lado: así ningún botón se aprieta (sus letras se apilaban
+ * y la barra crecía hacia abajo, empujando la hoja).
+ */
 @Composable
 fun RichTextToolbar(state: RichTextState, modifier: Modifier = Modifier, trailing: @Composable () -> Unit = {}) {
-    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
+    Row(modifier = modifier.horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically) {
         val gap = Modifier.padding(end = 8.dp)
         OutlinedButton(onClick = { state.toggleSpanStyle(SpanStyle(fontWeight = FontWeight.Bold)) }, modifier = gap) { Text("Negrita") }
         OutlinedButton(onClick = { state.toggleSpanStyle(SpanStyle(fontStyle = FontStyle.Italic)) }, modifier = gap) { Text("Cursiva") }
