@@ -157,17 +157,18 @@ private fun InkPageScreen(
         val s = pageScale
         val left = pageOrigin.x + b.x * s
         val top = pageOrigin.y + b.y * s
-        val height = (blockHeights[b.id] ?: MIN_TEXT_HEIGHT_UNITS) * s
-        return sx >= left && sx <= left + b.width * s + resizeHandlePx && sy >= top - moveBarPx && sy <= top + height
+        val bottom = top + (blockHeights[b.id] ?: MIN_TEXT_HEIGHT_UNITS) * s
+        return sx >= left && sx <= left + b.width * s + resizeHandlePx && sy >= top - moveBarPx && sy <= bottom
     }
 
     // Dedos o lápiz que se apoyaron en el cuadro que se edita (o en sus asas): mientras sigan apoyados,
     // ni desplazan la hoja ni escriben; el cuadro se encarga de ellos (cursor, mover, cambiar el ancho).
     val grabbed = remember { HashSet<PointerId>() }
 
-    // Al empezar a editar un cuadro: el cursor va a él y se abre el teclado. Al terminar: se cierra.
+    // Al empezar a editar un cuadro: el cursor va a él y, en modo Teclado, se abre el teclado (en modo Lápiz
+    // queda escondido). Al cambiar de modo, igual. Al terminar: se cierra.
     // Mientras se edita, cada cambio se le pasa al ViewModel, que lo guarda.
-    LaunchedEffect(texts.editingId) {
+    LaunchedEffect(texts.editingId, texts.keyboardMode) {
         val editing = texts.editing
         if (editing == null) {
             focusManager.clearFocus()
@@ -176,7 +177,7 @@ private fun InkPageScreen(
         }
         withFrameNanos { }
         runCatching { focusRequester.requestFocus() }
-        keyboard?.show()
+        if (texts.keyboardMode) keyboard?.show() else keyboard?.hide()
         val rich = richStateFor(editing)
         snapshotFlow { rich.annotatedString }.collect { textViewModel.onContentChanged(editing.id, rich.toHtml()) }
     }
@@ -288,8 +289,11 @@ private fun InkPageScreen(
                             for (c in event.changes) {
                                 if (c.pressed && !c.previousPressed && insideEditingArea(c.position.x, c.position.y)) grabbed += c.id
                             }
-                            grabbed.removeAll { id -> event.changes.none { it.id == id && it.pressed } }
-                            if (grabbed.isNotEmpty()) continue
+                            // Un dedo que se levanta sigue «del cuadro» en este mismo evento: así el soltar llega
+                            // entero al cuadro (si la hoja lo consumiera, la etiqueta del modo no recibiría el toque).
+                            // Se olvida en el evento siguiente, cuando ya no aparece.
+                            grabbed.removeAll { id -> event.changes.none { it.id == id } }
+                            if (event.changes.any { it.id in grabbed }) continue
                             val penDown = event.changes.any { (it.type == PointerType.Stylus || it.type == PointerType.Eraser) && it.pressed }
                             val touches = event.changes.filter { it.type == PointerType.Touch && it.pressed && it.previousPressed }
                             if (penDown || touches.isEmpty()) continue
@@ -378,7 +382,10 @@ private fun InkPageScreen(
                                     val starts = change.pressed && !change.previousPressed
                                     when (inputActionFor(change.type, current.eraserMode)) {
                                         // Escribir con el lápiz fuera del cuadro termina la edición del texto.
-                                        InputAction.DRAW -> if (starts && editing != null) textViewModel.onDoneEditing()
+                                        InputAction.DRAW ->
+                                            if (starts && editing != null && !insideEditingArea(change.position.x, change.position.y)) {
+                                                textViewModel.onDoneEditing()
+                                            }
                                         InputAction.ERASE -> {
                                             change.consume()
                                             if (change.pressed) {
@@ -436,6 +443,8 @@ private fun InkPageScreen(
                 @Composable
                 fun TextBlockOnPage(block: TextBlockUi, editing: Boolean) = key(block.id) {
                     PageTextBlock(
+                        keyboardMode = texts.keyboardMode,
+                        onToggleInputMode = textViewModel::onToggleInputMode,
                         block = block,
                         state = richStateFor(block),
                         editing = editing,

@@ -25,6 +25,11 @@ data class TextBlocksUiState(
     val loaded: Boolean = false,
     val blocks: List<TextBlockUi> = emptyList(),
     val editingId: EntityId? = null,
+    /**
+     * Cómo se escribe en el cuadro que se edita: `false` (modo Lápiz, el inicial), a mano, y Android lo
+     * convierte en texto; el teclado queda escondido. `true` (modo Teclado), con el teclado en pantalla.
+     */
+    val keyboardMode: Boolean = false,
     val message: String? = null,
 ) {
     val editing: TextBlockUi? get() = blocks.firstOrNull { it.id == editingId }
@@ -66,6 +71,9 @@ class TextBlocksViewModel(
             _state.update { it.copy(loaded = true) }
         }
     }
+
+    /** Cambia entre escribir a mano (modo Lápiz) y con el teclado (modo Teclado). */
+    fun onToggleInputMode() = _state.update { it.copy(keyboardMode = !it.keyboardMode) }
 
     /** La pantalla midió el cuadro [id]: mide [height] de alto, en unidades de la página. */
     fun onMeasured(id: EntityId, height: Float) {

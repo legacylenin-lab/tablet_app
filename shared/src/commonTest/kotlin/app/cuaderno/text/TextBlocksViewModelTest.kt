@@ -264,6 +264,17 @@ class TextBlocksViewModelTest {
     }
 
     @Test
+    fun empiezaEnModoLapizYSePuedeCambiarATeclado() = runTest(dispatcher) {
+        val vm = viewModel(FakeTextBlockRepository())
+        advanceUntilIdle()
+        kotlin.test.assertFalse(vm.state.value.keyboardMode)
+        vm.onToggleInputMode()
+        assertTrue(vm.state.value.keyboardMode)
+        vm.onToggleInputMode()
+        kotlin.test.assertFalse(vm.state.value.keyboardMode)
+    }
+
+    @Test
     fun sinTextosNoHayNadaQueBorrar() = runTest(dispatcher) {
         val vm = viewModel(FakeTextBlockRepository())
         advanceUntilIdle()

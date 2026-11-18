@@ -2,6 +2,9 @@ package app.cuaderno.text
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -77,6 +81,8 @@ fun PageTextBlock(
     onHeight: (Float) -> Unit,
     onGeometry: (x: Int, y: Int, width: Int) -> Unit = { _, _, _ -> },
     onGeometryDone: () -> Unit = {},
+    keyboardMode: Boolean = false,
+    onToggleInputMode: () -> Unit = {},
 ) {
     val barPx = with(LocalDensity.current) { TEXT_MOVE_BAR_HEIGHT.toPx() }
     val currentBlock by rememberUpdatedState(block)
@@ -103,6 +109,7 @@ fun PageTextBlock(
 
     Column(
         Modifier.offset {
+            // Con las asas, el cuadro empieza una barra más arriba, para que el texto quede en su lugar.
             val top = offsetY + block.y * scale - if (editing) barPx else 0f
             IntOffset((offsetX + block.x * scale).roundToInt(), top.roundToInt())
         },
@@ -116,9 +123,27 @@ fun PageTextBlock(
                     .dragHandle { start, dx, dy ->
                         onGeometry((start.x + dx).roundToInt(), (start.y + dy).roundToInt(), start.width)
                     },
-                contentAlignment = Alignment.CenterStart,
             ) {
-                Text("  ✥  Arrastra aquí para mover", color = Color.White, style = MaterialTheme.typography.labelMedium)
+                Text(
+                    "  ✥ Mover",
+                    color = Color.White,
+                    style = MaterialTheme.typography.labelMedium,
+                    maxLines = 1,
+                    modifier = Modifier.align(Alignment.CenterStart),
+                )
+                // Cómo se escribe en el cuadro: a mano (modo Lápiz, Android lo convierte en texto) o con el teclado.
+                Text(
+                    if (keyboardMode) "Modo: Teclado ⌨" else "Modo: Lápiz ✎",
+                    color = EDITING_BORDER,
+                    style = MaterialTheme.typography.labelMedium,
+                    maxLines = 1,
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .padding(end = 4.dp)
+                        .background(Color.White, RoundedCornerShape(12.dp))
+                        .clickable(onClick = onToggleInputMode)
+                        .padding(horizontal = 10.dp, vertical = 4.dp),
+                )
             }
         }
         Row(Modifier.height(IntrinsicSize.Min)) {
@@ -136,6 +161,8 @@ fun PageTextBlock(
                         modifier = Modifier.width((block.width / UNITS_PER_DP).dp).then(look),
                         readOnly = !editing,
                         textStyle = TEXT_STYLE,
+                        // En modo Lápiz el teclado no se abre solo al tocar el cuadro.
+                        keyboardOptions = KeyboardOptions(showKeyboardOnFocus = keyboardMode),
                     )
                 }
             }
