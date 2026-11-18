@@ -117,6 +117,47 @@ class NotebookPagesViewModelTest {
     }
 
     @Test
+    fun moverHaciaAtrasYAdelanteReordenaYLaVistaSigueALaPagina() {
+        val pages = FakePageRepository(listOf(p1, p2, p3))
+        val vm = viewModel(pages)
+        vm.onNext()
+        vm.onNext()
+        vm.onMoveEarlier()
+        assertEquals(listOf(p1, p3, p2), vm.state.value.pages)
+        assertEquals(p3, vm.state.value.currentPage)
+        vm.onMoveEarlier()
+        assertEquals(listOf(p3, p1, p2), vm.state.value.pages)
+        assertEquals("Página 1 de 3", vm.state.value.nav.label)
+        vm.onMoveLater()
+        vm.onMoveLater()
+        assertEquals(listOf(p1, p2, p3), vm.state.value.pages)
+        assertEquals(p3, vm.state.value.currentPage)
+    }
+
+    @Test
+    fun noSeMueveMasAllaDeLosExtremos() {
+        val vm = viewModel(FakePageRepository(listOf(p1, p2)))
+        vm.onMoveEarlier()
+        assertEquals(listOf(p1, p2), vm.state.value.pages)
+        vm.onNext()
+        vm.onMoveLater()
+        assertEquals(listOf(p1, p2), vm.state.value.pages)
+        assertEquals(p2, vm.state.value.currentPage)
+    }
+
+    @Test
+    fun trasMoverLasFlechasNaveganDesdeLaNuevaPosicion() {
+        val vm = viewModel(FakePageRepository(listOf(p1, p2, p3)))
+        vm.onMoveLater()
+        assertEquals(listOf(p2, p1, p3), vm.state.value.pages)
+        vm.onNext()
+        assertEquals(p3, vm.state.value.currentPage)
+        vm.onPrevious()
+        vm.onPrevious()
+        assertEquals(p2, vm.state.value.currentPage)
+    }
+
+    @Test
     fun unErrorAlGuardarSeMuestraComoAviso() {
         val pages = FakePageRepository(listOf(p1))
         pages.failWith = IllegalStateException("disco lleno")

@@ -219,6 +219,12 @@ private fun InkPageScreen(
                 OutlinedButton(onClick = controls.onNext, enabled = controls.nav.canGoForward, modifier = Modifier.padding(end = 8.dp)) { Text("▶") }
                 OutlinedButton(onClick = controls.onAdd, modifier = Modifier.padding(end = 8.dp)) { Text("Página nueva") }
                 OutlinedButton(onClick = controls.onDuplicate, modifier = Modifier.padding(end = 8.dp)) { Text("Duplicar") }
+                OutlinedButton(onClick = controls.onMoveEarlier, enabled = controls.nav.canGoBack, modifier = Modifier.padding(end = 8.dp)) {
+                    Text("Mover ◀")
+                }
+                OutlinedButton(onClick = controls.onMoveLater, enabled = controls.nav.canGoForward, modifier = Modifier.padding(end = 8.dp)) {
+                    Text("Mover ▶")
+                }
                 OutlinedButton(onClick = controls.onDelete, enabled = controls.nav.total > 1) { Text("Eliminar página") }
             }
             Row(modifier = Modifier.fillMaxWidth().padding(top = 6.dp).horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically) {
@@ -489,6 +495,8 @@ private class PageControls(
     val onNext: () -> Unit,
     val onAdd: () -> Unit,
     val onDuplicate: () -> Unit,
+    val onMoveEarlier: () -> Unit,
+    val onMoveLater: () -> Unit,
     val onDelete: () -> Unit,
 )
 
@@ -532,6 +540,8 @@ private fun NotebookPagesScreen(
                     onNext = viewModel::onNext,
                     onAdd = viewModel::onAdd,
                     onDuplicate = viewModel::onDuplicate,
+                    onMoveEarlier = viewModel::onMoveEarlier,
+                    onMoveLater = viewModel::onMoveLater,
                     onDelete = viewModel::onDeleteClick,
                 ),
                 modifier = modifier,

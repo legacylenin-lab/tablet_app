@@ -45,6 +45,9 @@ class FakePageRepository(initial: List<Page> = emptyList()) : PageRepository {
 
     override suspend fun move(id: EntityId, after: EntityId?) {
         failWith?.let { throw it }
+        val page = items.value.first { it.meta.id == id }
+        items.value = items.value.filter { it.meta.id != id }
+        if (after == null) items.value = listOf(page) + items.value else insertAfter(page, after)
     }
 
     override suspend fun delete(id: EntityId) {

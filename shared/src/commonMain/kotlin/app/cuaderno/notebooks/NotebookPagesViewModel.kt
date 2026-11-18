@@ -24,6 +24,8 @@ import kotlinx.coroutines.launch
 data class NotebookPagesUiState(
     val pages: List<Page>? = null,
     val index: Int = 0,
+    /** Página que la vista sigue aunque cambie de lugar (al moverla); manda sobre [index]. */
+    val follow: EntityId? = null,
     val confirmDelete: Boolean = false,
     val message: String? = null,
 ) {
@@ -50,7 +52,10 @@ class NotebookPagesViewModel(
         combine(
             pages.observeByNotebook(notebookId).onEach { if (it.isEmpty()) save { ensureFirstPage.forNotebook(notebookId) } },
             local,
-        ) { list, ui -> ui.copy(pages = list, index = PageNav.clampIndex(ui.index, list.size)) }
+        ) { list, ui ->
+            val followed = ui.follow?.let { id -> list.indexOfFirst { it.meta.id == id } }?.takeIf { it >= 0 }
+            ui.copy(pages = list, index = PageNav.clampIndex(followed ?: ui.index, list.size))
+        }
             .stateIn(viewModelScope, SharingStarted.Eagerly, NotebookPagesUiState())
 
     fun onPrevious() = goTo(state.value.index - 1)
@@ -77,6 +82,28 @@ class NotebookPagesViewModel(
         }
     }
 
+    /** Mueve la página actual un lugar hacia el principio; la vista la sigue. */
+    fun onMoveEarlier() {
+        val s = state.value
+        val list = s.pages ?: return
+        if (s.index < 1) return
+        move(list[s.index], after = list.getOrNull(s.index - 2))
+    }
+
+    /** Mueve la página actual un lugar hacia el final; la vista la sigue. */
+    fun onMoveLater() {
+        val s = state.value
+        val list = s.pages ?: return
+        if (s.index >= list.size - 1) return
+        move(list[s.index], after = list[s.index + 1])
+    }
+
+    private fun move(page: Page, after: Page?) {
+        // La vista sigue a la página por su id: así no muestra otra mientras llega la lista nueva.
+        local.value = local.value.copy(index = state.value.index, follow = page.meta.id)
+        save { pages.move(page.meta.id, after = after?.meta?.id) }
+    }
+
     /** Pide confirmación para eliminar. Con una sola página no se puede eliminar. */
     fun onDeleteClick() {
         if ((state.value.pages?.size ?: 0) > 1) local.value = local.value.copy(confirmDelete = true)
@@ -97,7 +124,7 @@ class NotebookPagesViewModel(
     }
 
     private fun goTo(index: Int) {
-        local.value = local.value.copy(index = index.coerceAtLeast(0))
+        local.value = local.value.copy(index = index.coerceAtLeast(0), follow = null)
     }
 
     private fun save(block: suspend () -> Unit) {
