@@ -1,7 +1,7 @@
 # Requisitos de la app de notas y biblioteca (tablet + PC)
 
-**Estado del documento:** **v1.1, LÍNEA BASE APROBADA** por Leyni (programador del proyecto)
-**Fecha:** 16/11/2026
+**Estado del documento:** **v1.2, LÍNEA BASE APROBADA** por Leyni (programador del proyecto)
+**Fecha:** 17/11/2026
 **Documentos relacionados (todos en `docs/`):**
 - `arquitectura.md`: cómo se construye (módulos, datos, contratos).
 - `plan-de-pruebas.md`: cómo se verifica.
@@ -60,8 +60,8 @@ Funciones principales:
 
 | Versión | Contenido |
 |---|---|
-| **v1: MVP Android** | RF-01, RF-02, RF-03, RF-04, RF-10, RF-12, RF-16, RF-17. El modelo de datos ya está preparado para sincronizar (RNF-11). |
-| **v1.x: mejoras Android** | RF-11, RF-13, RF-18, RF-26 y RF-27, más el backlog que se priorice (RF-05 a RF-09, RF-14, RF-15, RF-19). |
+| **v1: MVP Android** | RF-01, RF-02, RF-03, RF-04, RF-05 (adelantado por PC-01), RF-10, RF-12, RF-16, RF-17. El modelo de datos ya está preparado para sincronizar (RNF-11). |
+| **v1.x: mejoras Android** | RF-11, RF-13, RF-18, RF-26 y RF-27, más el backlog que se priorice (RF-06 a RF-09, RF-14, RF-15, RF-19). |
 | **v2: PC + sincronización** | RF-21 a RF-25, más RF-28 (conversión automática de DOCX, opcional). |
 | **v3: colaboración local** | RF-F1 y RF-F2. |
 | **v4 (hipotética): port a macOS** | Fuera de alcance por ahora. |
@@ -74,7 +74,7 @@ Funciones principales:
 | RF-02 | Escribir **a mano con el lápiz** en la tablet: trazo fluido con presión, grosor y color seleccionables, borrador, deshacer y rehacer. | M | Confirmado |
 | RF-03 | **Entrada separada por tipo de dispositivo en la tablet.** Lápiz y teclado escriben. El dedo solo desplaza, hace zoom y cambia de página, **nunca escribe**. Incluye rechazo de palma. | M | Confirmado |
 | RF-04 | Escribir texto con el teclado en bloques de **texto enriquecido**: negrita, cursiva, listas y títulos. | M | Confirmado |
-| RF-05 | Combinar en una misma página trazos a mano y bloques de texto. | S | Backlog |
+| RF-05 | Combinar en una misma página trazos a mano y bloques de texto. | S | Confirmado (v1, PC-01) |
 | RF-06 | Organizar en cuadernos y semestres, con etiquetas opcionales. | S | Backlog |
 | RF-07 | Buscar notas por título, por texto escrito con teclado y por el texto reconocido de la escritura a mano. | S | Backlog |
 | RF-08 | **Páginas separadas en tamaño A4.** Agregar, reordenar, duplicar y eliminar páginas. Fondo en blanco, rayado o cuadriculado. | S | Confirmado |
@@ -340,9 +340,10 @@ Se definen en `plan-de-pruebas.md`.
 | 0.4 | 28/10/2026 | RF-26 confirmado. A4. Impresión nativa (RF-27). PC sin dibujo. Gana la edición. Propuestas de DOCX, cifrado y visor. |
 | 1.0 | 31/10/2026 | Línea base aprobada. Solo PDF; RF-28 condicionado a RNF-21. TLS 1.3 mutuo aprobado. |
 | **1.1** | **16/11/2026** | **Cambio de stack:** Flutter → Kotlin + Compose Multiplatform, porque ESET bloquea PowerShell y Flutter depende de él (nuevo RNF-22). Validado en la PC: Android y escritorio compilan y corren. Se actualizan las secciones 4, 5.10, 5.11, 5.12, 5.13 y 7. Los documentos pasan al repositorio (`docs/`) y se agrega `arquitectura.md`. Los requisitos funcionales no cambian. |
+| 1.2 | 17/11/2026 | PC-01 aprobada por Leyni: RF-05 (trazos y bloques de texto en la misma página) pasa del backlog de la v1.x a la v1 (etapa 4). Prioridad S: si se complica, no bloquea el cierre de la v1, que sigue exigiendo RF-04. |
 
 **Propuestas de cambio posteriores a la v1.1** (las registran los agentes o Leyni; solo Leyni las aprueba):
 
 | ID | Fecha | Propuesta | Origen | Impacto | Estado |
 |---|---|---|---|---|---|
-| PC-01 | 18/11/2026 | **Adelantar RF-05 a la v1:** poder combinar en una misma página los trazos a mano y los bloques de texto enriquecido (cuadros de texto sobre la hoja donde también se dibuja). Hoy RF-05 está en el backlog de la v1.x y la v1 solo pide RF-04 (texto en bloques). | Dueño: quiere escribir texto y dibujar en la misma página. | El modelo de datos ya lo soporta (`TextBlock` con página, posición y ancho; repositorio hecho). Cuesta más que páginas de texto aparte: mover y redimensionar bloques, convivir con los gestos del lápiz y del dedo, y el orden en que se dibujan. Estimado: 2 o 3 sesiones más. Encaja en la etapa 4 de la v1. No contradice otras decisiones, salvo mover RF-05 de «Backlog (S)» a la v1. | Pendiente de revisión (Leyni) |
+| PC-01 | 18/11/2026 | **Adelantar RF-05 a la v1:** poder combinar en una misma página los trazos a mano y los bloques de texto enriquecido (cuadros de texto sobre la hoja donde también se dibuja). Hoy RF-05 está en el backlog de la v1.x y la v1 solo pide RF-04 (texto en bloques). | Dueño: quiere escribir texto y dibujar en la misma página. | El modelo de datos ya lo soporta (`TextBlock` con página, posición y ancho; repositorio hecho). Cuesta más que páginas de texto aparte: mover y redimensionar bloques, convivir con los gestos del lápiz y del dedo, y el orden en que se dibujan. Estimado: 2 o 3 sesiones más. Encaja en la etapa 4 de la v1. No contradice otras decisiones, salvo mover RF-05 de «Backlog (S)» a la v1. | **Aprobada (17/11/2026)** |

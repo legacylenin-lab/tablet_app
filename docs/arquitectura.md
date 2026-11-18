@@ -390,7 +390,7 @@ Versiones exactas fijadas el **17/11/2026**, tal como están en `gradle/libs.ver
 | JUnit / AndroidX Test (runner, ext, espresso) | 4.13.2 / 1.7.0, 1.3.0, 3.7.0 | EPL 1.0 / Apache 2.0 | Fijada (solo pruebas) |
 | Navigation Compose (KMP) | — | Apache 2.0 | Aprobada; se fija al adoptarla |
 | compose-rich-editor | 1.2.1 | Apache 2.0 | **Adoptada** (18/11/2026): compila en Android y PC, resiste ida y vuelta por HTML y se probó en la tablet. Los títulos se normalizan a `h1`–`h3` con `RichTextHtml` |
-| androidx.ink | — | Apache 2.0 | Aprobada. **Adoptada** en la versión estable 1.0.0 tras el prototipo P-0 (17/11/2026) |
+| androidx.ink | — | Apache 2.0 | Aprobada. **Adoptada** en la versión estable 1.0.0 tras el prototipo P-0 (17/11/2026). Trae como dependencias transitivas `androidx.input:input-motionprediction` 1.0.0 (predicción del trazo) y `androidx.graphics:graphics-core` 1.0.4 (dibujo en el búfer frontal); `InProgressStrokes` las usa por dentro (PQ-21) |
 | Apache PDFBox | — | Apache 2.0 | A validar en P-1 |
 | PdfBox-Android | — | Apache 2.0 | A validar en P-2 |
 | Ktor, JmDNS, ZXing, CameraX, ML Kit | — | Apache 2.0 | Solo cuando llegue su versión |

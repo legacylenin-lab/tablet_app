@@ -191,7 +191,7 @@ Cada escenario se prueba **en ambos sentidos**. La lógica de fusión se prueba 
 1. Grabar en **cámara lenta** (240 fps o más) el lápiz trazando una línea rápida.
 2. Contar los cuadros entre la punta y el final de la tinta (cada cuadro ≈ 4,2 ms a 240 fps).
 3. Repetir al menos 10 veces y obtener la mediana.
-4. Medir lo mismo con la app de notas de la tablet como **línea base**.
+4. Medir lo mismo con **Nebo (MyScript Notes)** como **línea base** (referencia elegida por Leyni y el dueño, 17/11/2026), en la misma tablet. Medir la pantalla real del cuaderno, no la de prueba `ComposeInkScreen`.
 5. Complementar con el profiler de Android Studio (o Perfetto): tiempos de cuadro y cuadros perdidos.
 6. Repetir con una página de unos 2.000 trazos.
 

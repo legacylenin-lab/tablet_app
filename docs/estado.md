@@ -22,18 +22,20 @@
 - **Varias páginas por cuaderno, probado en la tablet:** «Página nueva» (después de la actual), flechas ◀ ▶ y «Página X de N»; cada página guarda sus trazos. Los guardados corren en un alcance que vive con la app (`AppServices.saveScope`), para que no se cancelen al cambiar de página.
 - **Texto enriquecido (RF-04), paso 1 probado en la tablet:** `compose-rich-editor` 1.2.1 adoptada (negrita, cursiva, subrayado, título, listas); `RichTextHtml` deja el HTML en el formato acordado, con prueba de ida y vuelta. Pantalla de prueba provisional («Probar texto»).
 - **Duplicar y eliminar páginas (parte de RF-08, v1.x), probado en la tablet.** Reordenar páginas y los fondos rayado/cuadriculado siguen pendientes.
-- **Propuesta PC-01** (texto y lápiz en la misma página, RF-05 adelantado a la v1) registrada y pendiente de revisión de Leyni.
+- **Propuesta PC-01** (texto y lápiz en la misma página): **aprobada por Leyni**. RF-05 pasa a la v1 (requisitos v1.2).
 
 ## En curso
 - Nada abierto. Si el último commit (guardado de trazos) no aparece en el historial de Git, falta hacerlo.
 
 ## Siguiente
-- **Etapa 4:** (cuadernos, varias páginas y texto).
+- **Etapa 4:** gesto "atrás" con `BackHandler` (PQ-23); botón del lápiz con un solo toque, probado en la tablet (PQ-20); luego bloques de texto sobre la página (RF-05, PC-01) y reordenar páginas. Antes de los bloques de texto: pasar la lista de cuadernos y el lienzo a ViewModels en código común (PQ-24, aprobado).
+- **Antes de cerrar la v1:** medir la latencia con cámara lenta contra Nebo (PQ-21, `plan-de-pruebas.md` §7.1).
 - Al inicio de cada etapa: revisar si ya hay una versión estable de Compose Material 3 (PQ-04b).
 - Para la etapa 6: último paso de la restauración y la interfaz delgada de `BackupService` en `core:domain` (PQ-14, PQ-17).
 - Para la v1.x: búsqueda de texto con FTS (PQ-18).
 
 ## Bloqueos o pendientes
+- **Revisión de Leyni (17/11/2026):** aprobó PC-01 (texto y lápiz en la misma página, en la v1), PQ-19 (se queda `androidx.ink` 1.0.0) y PQ-23 (`BackHandler`). PQ-20: se desactivó en los ajustes de la tablet el panel de Lenovo que capturaba el botón del lápiz; probar que un solo toque alterne lápiz/borrador. PQ-21: `androidx.ink` ya usa búfer frontal, predicción y entrada sin agrupar; Nebo (MyScript iink, comercial) no se adopta; medir contra Nebo. PQ-24 aprobado: ViewModels en código común antes de RF-05.
 - Ninguno.
 - `sdk.dir` en `local.properties` se completó a mano tras copiar el proyecto base (archivo local, no se sube a Git).
 - Lo que solo se puede comprobar en la tablet real: lápiz, latencia y rendimiento (etapa 3 en adelante).

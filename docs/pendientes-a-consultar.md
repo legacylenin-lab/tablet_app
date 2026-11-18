@@ -8,7 +8,7 @@
 >
 > **Quién lo mantiene:** el agente agrega filas con estado **Abierto**; solo Leyni marca **Decidido** o **Descartado**. Cuando una decisión requiere cambiar código, el agente la implementa y lo anota en la columna "Implementado".
 
-Última actualización: 17/11/2026 (revisión de Leyni).
+Última actualización: 17/11/2026 (segunda revisión de Leyni).
 
 ---
 
@@ -17,14 +17,11 @@
 | ID | Afecta a | Punto | Por qué importa | Estado |
 |---|---|---|---|---|
 | PQ-04b | Ambas | **Compose Material 3 está fijada en una versión alfa (1.12.0-alpha03).** | Leyni pidió fijar las versiones y dejar este punto pendiente hasta que exista una versión estable compatible con Compose Multiplatform 1.12.x. El agente lo revisa al inicio de cada etapa y, cuando haya una estable, propone el cambio. | Abierto (revisar en cada etapa) |
-| PQ-19 | Android | **Curva de grosor por presión de `androidx.ink`.** Con la versión estable 1.0.0 la curva del lápiz de presión (`StockBrushes.pressurePen`) es fija: solo se puede cambiar el tamaño total (hoy `size = 3`). Para ajustar el grosor mínimo y el máximo por separado hay que usar las brochas personalizadas, que solo existen en la 1.1.0-alpha, o dibujar con código propio. | Al dueño le gusta el grosor actual. Se decide si hace falta algo más cuando se construya la interfaz real. | Abierto |
-| PQ-20 | Android | **Borrador y botón del lápiz.** El Lenovo Tab Pen Plus no tiene extremo borrador y su botón no llega como botón del puntero (`buttonState` siempre 0): su **doble toque** llega como una tecla de un dispositivo aparte (`Lenovo Tab Pen Plus Consumer Control`), que la actividad reenvía a `PenButton`. Un toque o mantenerlo apretado no mandan nada. El prototipo alterna lápiz/borrador con ese doble toque y con un botón en pantalla. | Depende del modelo de lápiz. Otros lápices podrían no mandar esa tecla. El botón en pantalla es el respaldo. Si se quiere depender de este gesto, conviene que Leyni lo confirme. | Abierto |
-| PQ-21 | Android | **Latencia sin medir formalmente.** En el P-0 la ruta de baja latencia de `androidx.ink` está activa en la tablet (`CanvasInProgressStrokesRenderHelperV33`), pero a 90 Hz el dueño no notó mucha diferencia con la versión de solo Compose. Falta la medición con cámara lenta que pide `plan-de-pruebas.md` §7.1, con Nebo como referencia. | RNF-03 se valida con esa medición. No bloquea seguir. | Abierto |
+| PQ-21 | Android | **Latencia sin medir formalmente.** Investigación (17/11/2026): `InProgressStrokes` de `androidx.ink` 1.0.0 ya aplica las tres técnicas de baja latencia de Android: dibujo en el búfer frontal (`CanvasInProgressStrokesRenderHelperV33`, visto en la tablet), predicción del trazo (`input-motionprediction`) y entrada sin agrupar (`requestUnbufferedDispatch`). Nebo usa el SDK comercial MyScript iink (licencia de distribución por cotización, código cerrado, con su propio modelo de tinta); su motor de dibujo no es público, salvo una predicción de unos 16 ms. No se recomienda adoptarlo. La medición sigue siendo válida: se hace sobre la pantalla real del cuaderno (que usa `androidx.ink`), no sobre `ComposeInkScreen`, con Nebo como línea base (`plan-de-pruebas.md` §7.1). | RNF-03 se valida con esa medición. Si sale peor que Nebo, revisar primero el redibujado de los trazos terminados (lienzo completo en cada cambio). | Abierto (medir antes del cierre de la v1) |
 | PQ-22 | Ambas | **`ComposeInkScreen` es provisional.** La pantalla de línea base (solo Compose) y `InkPrototypeScreen` son del prototipo y se reemplazan al construir la interfaz real de notas. | Aviso: no es una decisión. | Abierto |
-| PQ-23 | Android | **Gesto "atrás" del sistema en el lienzo.** Hoy, dentro de un cuaderno, "atrás" cierra la app; solo el botón "← Cuadernos" vuelve a la lista. Arreglarlo con `BackHandler` requiere agregar `androidx.activity:activity-compose` al módulo `shared` (ya está en el catálogo y en `androidApp`). | Pedimos confirmar que se puede agregar al módulo `shared`, o resolverlo en `MainActivity` sin librería nueva. | Abierto |
 | PQ-18 | Ambas | **Búsqueda de texto (RF-07, RF-15, v1.x):** usar una tabla virtual FTS de SQLite (índice invertido) sobre títulos, bloques de texto y texto reconocido de la escritura a mano. Las anotaciones no se indexan, porque son trazos. | Hay que verificar si el SQLite de Android trae FTS5 o solo FTS4. Se decide al llegar a la búsqueda; **no** se implementa en la v1. | Abierto (v1.x) |
 
-## 2. Decididos (17/11/2026)
+## 2. Decididos
 
 | ID | Afecta a | Punto | Decisión de Leyni | Implementado |
 |---|---|---|---|---|
@@ -42,6 +39,10 @@
 | PQ-15 | Android | `VACUUM INTO` requiere API 30, pero `minSdk` era 24. | **Subir `minSdk` a 30** (`android-minSdk` en `libs.versions.toml`). `arquitectura.md` §2, ADR-11. | Sí (17/11/2026) |
 | PQ-16 | Ambas | La fecha del manifiesto va en milisegundos (`createdAtMillis`), no en texto ISO. | **Aprobado** (`arquitectura.md` §5.3). | Sí |
 | PQ-17 | Ambas | Falta el último paso de la restauración (cerrar la base, intercambiar archivos, reabrir, respaldo automático previo). | Trabajo de la etapa 6, ya documentado en `arquitectura.md` §5.3. | Etapa 6 |
+| PQ-19 | Android | Curva de grosor por presión fija en `androidx.ink` 1.0.0 (solo cambia el tamaño total). | **Aprobado (17/11/2026): se queda la versión estable 1.0.0** con `StockBrushes.pressurePen`. Las brochas personalizadas (1.1.0-alpha) no se adoptan. | Sí (no requiere cambios) |
+| PQ-20 | Android | Borrador y botón del lápiz: el botón solo llegaba con doble toque, como tecla de otro dispositivo. | **Decidido (17/11/2026), a confirmar con la prueba:** el problema era la app nativa de Lenovo, que capturaba el botón. Se desactivó su panel en los ajustes de la tablet y debe quedar desactivado. Así el botón queda libre: **un solo toque alterna lápiz/borrador**. Si la prueba en la tablet no funciona, se revisa la decisión. El botón en pantalla se mantiene como respaldo. | Pendiente: registrar qué evento manda el botón con el panel desactivado e implementar el toque simple (próxima sesión, en la tablet) |
+| PQ-23 | Android | Gesto "atrás" del sistema en el lienzo cierra la app. | **Aprobado (17/11/2026):** agregar `androidx.activity:activity-compose` (ya en §11) a `androidMain` del módulo `shared` y usar `BackHandler` para volver a la lista de cuadernos. | Pendiente (próxima sesión) |
+| PQ-24 | Ambas | No hay ViewModels: las pantallas llaman a los repositorios por `AppServices` y la lógica del cuaderno vive en `InkScreen.android.kt` (`androidMain`). | **Aprobado (17/11/2026):** pasar la lista de cuadernos y el cuaderno/lienzo a ViewModels en `commonMain` (`StateFlow<UiState>` y eventos, `arquitectura.md` §2), con sus pruebas en `commonTest`, **antes** de los bloques de texto (RF-05). En `androidMain` queda solo lo propio de la tinta. No cambia lo que ve el dueño. | Pendiente (etapa 4, antes de RF-05) |
 
 ## 3. Recordatorios (ya previstos en los documentos)
 
