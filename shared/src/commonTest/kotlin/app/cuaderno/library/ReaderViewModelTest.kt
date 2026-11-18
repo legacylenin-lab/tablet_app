@@ -93,6 +93,53 @@ class ReaderViewModelTest {
     }
 
     @Test
+    fun irAUnaPaginaLejanaDibujaSoloEsaYLaRecuerda() = runTest {
+        val vm = reader(pages = 2000)
+        vm.onWidth(500)
+        vm.onGoToClick()
+        assertTrue(vm.state.value.goToDialog)
+        vm.onConfirmGoTo(" 1847 ")
+        assertFalse(vm.state.value.goToDialog)
+        assertEquals("Página 1847 de 2000", vm.state.value.nav.label)
+        assertEquals(listOf(0 to 500, 1846 to 500), engine.rendered)
+        advanceTimeBy(1_100)
+        runCurrent()
+        assertEquals(listOf(1846), repo.savedPages)
+    }
+
+    @Test
+    fun unNumeroInvalidoNoCierraLaVentanita() = runTest {
+        val vm = reader(pages = 10)
+        vm.onGoToClick()
+        vm.onConfirmGoTo("11")
+        vm.onConfirmGoTo("cero")
+        assertTrue(vm.state.value.goToDialog)
+        assertEquals(0, vm.state.value.index)
+        vm.onDismissGoTo()
+        assertFalse(vm.state.value.goToDialog)
+    }
+
+    @Test
+    fun laBarraSaltaALaPaginaAlSoltarla() = runTest {
+        val vm = reader(pages = 1000)
+        vm.onGoToPage(ReaderViewModel.sliderPage(500.4f, 1000))
+        assertEquals("Página 500 de 1000", vm.state.value.nav.label)
+        vm.onGoToPage(ReaderViewModel.sliderPage(5000f, 1000))
+        assertEquals("Página 1000 de 1000", vm.state.value.nav.label)
+    }
+
+    @Test
+    fun numerosDePaginaValidos() {
+        assertEquals(1, ReaderViewModel.parsePageNumber("1", 5))
+        assertEquals(5, ReaderViewModel.parsePageNumber("5", 5))
+        assertEquals(null, ReaderViewModel.parsePageNumber("0", 5))
+        assertEquals(null, ReaderViewModel.parsePageNumber("6", 5))
+        assertEquals(null, ReaderViewModel.parsePageNumber("", 5))
+        assertEquals(null, ReaderViewModel.parsePageNumber("2.5", 5))
+        assertEquals(1, ReaderViewModel.sliderPage(0f, 5))
+    }
+
+    @Test
     fun unaPaginaGuardadaFueraDeRangoSeAjusta() = runTest {
         val vm = reader(pages = 3, lastRead = 9)
         assertEquals("Página 3 de 3", vm.state.value.nav.label)

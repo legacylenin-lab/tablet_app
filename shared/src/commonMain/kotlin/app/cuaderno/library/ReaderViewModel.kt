@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 /**
  * Lo que muestra el lector de un PDF. [index] es la página que se ve (desde 0). [image] es la
@@ -27,6 +28,8 @@ data class ReaderUiState(
     val imageIndex: Int? = null,
     val loading: Boolean = false,
     val message: String? = null,
+    /** Está abierta la ventanita «Ir a la página». */
+    val goToDialog: Boolean = false,
 ) {
     val nav: PageNav get() = PageNav.at(index, document.pageCount)
 }
@@ -63,6 +66,33 @@ class ReaderViewModel(
     fun onPrevious() = goTo(_state.value.index - 1)
 
     fun onNext() = goTo(_state.value.index + 1)
+
+    /** Salta a la página [number] (desde 1), por ejemplo al soltar la barra deslizable. */
+    fun onGoToPage(number: Int) = goTo(number - 1)
+
+    fun onGoToClick() {
+        _state.value = _state.value.copy(goToDialog = true)
+    }
+
+    fun onDismissGoTo() {
+        _state.value = _state.value.copy(goToDialog = false)
+    }
+
+    /** Confirma la ventanita «Ir a la página». Un número inválido no hace nada (el botón ya está apagado). */
+    fun onConfirmGoTo(text: String) {
+        val number = parsePageNumber(text, _state.value.document.pageCount) ?: return
+        _state.value = _state.value.copy(goToDialog = false)
+        onGoToPage(number)
+    }
+
+    companion object {
+        /** El número que escribió el usuario, si es una página que existe (de 1 a [total]); si no, `null`. */
+        fun parsePageNumber(text: String, total: Int): Int? =
+            text.trim().toIntOrNull()?.takeIf { it in 1..total }
+
+        /** Página (desde 1) que corresponde a una posición de la barra deslizable. */
+        fun sliderPage(value: Float, total: Int): Int = value.roundToInt().coerceIn(1, maxOf(1, total))
+    }
 
     private fun goTo(target: Int) {
         val s = _state.value
