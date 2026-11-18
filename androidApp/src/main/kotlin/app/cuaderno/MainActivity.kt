@@ -25,13 +25,16 @@ class MainActivity : ComponentActivity() {
      * El botón del lápiz (Lenovo Tab Pen Plus) llega como una tecla desconocida de un dispositivo
      * llamado "...Pen Plus Consumer Control". Cada pulsación se reenvía a [PenButton].
      */
-    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean = handlePenKey(keyCode, event, isDown = true) ?: super.onKeyDown(keyCode, event)
+
+    override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean = handlePenKey(keyCode, event, isDown = false) ?: super.onKeyUp(keyCode, event)
+
+    /** `null` si la tecla no viene del lápiz (la atiende Android); `true` si ya la atendimos. */
+    private fun handlePenKey(keyCode: Int, event: KeyEvent, isDown: Boolean): Boolean? {
         val fromPen = event.device?.name?.contains("pen", ignoreCase = true) == true
-        if (fromPen) {
-            if (event.repeatCount == 0) PenButton.click()
-            return true
-        }
-        return super.onKeyDown(keyCode, event)
+        if (!fromPen) return null
+        if (PenButton.isPress(keyCode, isDown, event.repeatCount)) PenButton.click()
+        return true
     }
 }
 
