@@ -3,13 +3,18 @@ package app.cuaderno.data
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
 import app.cuaderno.domain.AddDocumentResult
+import app.cuaderno.domain.DocumentFileStore
 import app.cuaderno.domain.DocumentRepository
+import app.cuaderno.domain.ImportResult
 import app.cuaderno.domain.NewDocument
+import app.cuaderno.domain.PdfEngine
+import app.cuaderno.domain.PlatformFile
 import app.cuaderno.model.Document
 import app.cuaderno.model.EntityId
 import app.cuaderno.model.Hlc
 import app.cuaderno.model.Meta
 import app.cuaderno.model.TitleSort
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -19,12 +24,48 @@ import app.cuaderno.data.db.Document as DocumentRow
 class SqlDocumentRepository(
     private val ctx: DataContext,
     private val dispatcher: CoroutineDispatcher,
+    private val files: DocumentFileStore,
+    private val pdf: PdfEngine,
 ) : DocumentRepository {
 
     private val queries get() = ctx.db.cuadernoQueries
 
     override fun observeAll(): Flow<List<Document>> =
         queries.selectDocuments().asFlow().mapToList(dispatcher).map { rows -> rows.map { it.toModel() } }
+
+    override suspend fun import(source: PlatformFile): ImportResult {
+        if (isWordFile(source.name)) return ImportResult.NotPdf(isWord = true)
+        val stored = files.store(source)
+        // Si algo sale mal, se borra la copia, pero solo si la acabamos de crear.
+        suspend fun discardIfNew() { if (stored.isNew) files.discard(stored.sha256) }
+
+        if (!stored.startsLikePdf) {
+            discardIfNew()
+            return ImportResult.NotPdf(isWord = false)
+        }
+        val pages = try {
+            pdf.pageCount(stored.sha256)
+        } catch (e: CancellationException) {
+            discardIfNew()
+            throw e
+        } catch (e: Exception) {
+            null
+        }
+        if (pages == null || pages < 1) {
+            discardIfNew()
+            return ImportResult.Corrupt
+        }
+        val result = try {
+            add(NewDocument(titleFromFileName(source.name), stored.sha256, pages, stored.sizeBytes))
+        } catch (e: Throwable) {
+            discardIfNew()
+            throw e
+        }
+        return when (result) {
+            is AddDocumentResult.Added -> ImportResult.Imported(result.document)
+            is AddDocumentResult.AlreadyExists -> ImportResult.AlreadyExists(result.document)
+        }
+    }
 
     override suspend fun add(newDocument: NewDocument): AddDocumentResult = withContext(dispatcher) {
         require(newDocument.pageCount >= 0) { "pageCount inválido: ${newDocument.pageCount}" }

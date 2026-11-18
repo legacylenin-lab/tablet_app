@@ -39,6 +39,7 @@ import app.cuaderno.model.Notebook
 fun NotebookListScreen(
     services: AppServices,
     onOpen: (Notebook) -> Unit,
+    onLibrary: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: NotebookListViewModel = viewModel { NotebookListViewModel(services.notebooks) },
 ) {
@@ -47,6 +48,7 @@ fun NotebookListScreen(
     Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Mis cuadernos", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
+            OutlinedButton(onClick = onLibrary, modifier = Modifier.padding(end = 8.dp)) { Text("Biblioteca") }
             Button(onClick = viewModel::onCreateClick) { Text("Nuevo cuaderno") }
         }
         state.message?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 8.dp)) }

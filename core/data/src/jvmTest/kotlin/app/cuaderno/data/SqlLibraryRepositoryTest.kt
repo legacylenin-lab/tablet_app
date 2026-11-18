@@ -29,7 +29,9 @@ class SqlLibraryRepositoryTest {
     private fun TestScope.repos(): Repos {
         val ctx = DataContext(db, deviceId = testId(1), authorId = testId(2), ids = ids, nowMillis = { now++ })
         val d = StandardTestDispatcher(testScheduler)
-        return Repos(SqlDocumentRepository(ctx, d), SqlAnnotationRepository(ctx, d))
+        // Estas pruebas no importan archivos: la carpeta no se llega a crear.
+        val files = FileDocumentStore(java.io.File("no-se-usa"), d) { error("no se usa") }
+        return Repos(SqlDocumentRepository(ctx, d, files, FakePdfEngine()), SqlAnnotationRepository(ctx, d))
     }
 
     private fun changes() = db.cuadernoQueries.selectChanges().executeAsList()

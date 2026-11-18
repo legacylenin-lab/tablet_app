@@ -1,7 +1,12 @@
 package app.cuaderno
 
 import android.content.Context
+import app.cuaderno.data.AndroidPdfEngine
+import app.cuaderno.data.FileDocumentStore
+import app.cuaderno.data.SqlDocumentRepository
 import app.cuaderno.data.SqlInkRepository
+import app.cuaderno.library.AndroidPlatformFile
+import java.io.File
 import app.cuaderno.data.SqlNotebookRepository
 import app.cuaderno.data.SqlPageRepository
 import app.cuaderno.data.SqlTextBlockRepository
@@ -30,11 +35,16 @@ class AppContainer(context: Context) {
         }
 
         val data = createAndroidDataContext(context, stableId("device_id"), stableId("author_id"), ids)
+        val appContext = context.applicationContext
+        val files = FileDocumentStore(File(appContext.filesDir, "documents"), Dispatchers.IO) { file ->
+            (file as AndroidPlatformFile).open(appContext)
+        }
         services = AppServices(
             notebooks = SqlNotebookRepository(data, Dispatchers.IO),
             pages = SqlPageRepository(data, Dispatchers.IO),
             ink = SqlInkRepository(data, Dispatchers.IO),
             text = SqlTextBlockRepository(data, Dispatchers.IO),
+            documents = SqlDocumentRepository(data, Dispatchers.IO, files, AndroidPdfEngine(files, Dispatchers.IO)),
         )
     }
 }

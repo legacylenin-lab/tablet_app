@@ -1,5 +1,6 @@
 package app.cuaderno
 
+import app.cuaderno.domain.DocumentRepository
 import app.cuaderno.domain.InkRepository
 import app.cuaderno.domain.NotebookRepository
 import app.cuaderno.domain.PageRepository
@@ -21,5 +22,6 @@ class AppServices(
     val pages: PageRepository,
     val ink: InkRepository,
     val text: TextBlockRepository,
+    val documents: DocumentRepository,
     val saveScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
 )

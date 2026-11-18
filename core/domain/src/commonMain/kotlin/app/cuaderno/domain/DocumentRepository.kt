@@ -24,12 +24,20 @@ sealed interface AddDocumentResult {
 }
 
 /**
- * Contrato de la biblioteca (docs/arquitectura.md §7). Copiar el archivo y leer el PDF
- * son tareas de plataforma que se agregan en la etapa 5; aquí vive el registro.
+ * Contrato de la biblioteca (docs/arquitectura.md §7). Copiar el archivo y leer el PDF son tareas
+ * de plataforma ([DocumentFileStore], [PdfEngine]); el repositorio las usa para importar.
  */
 interface DocumentRepository {
     fun observeAll(): Flow<List<Document>>
 
+    /**
+     * Importa un archivo que eligió el usuario (RF-10): lo copia a la carpeta privada, comprueba
+     * que sea un PDF que se pueda abrir, cuenta sus páginas y lo registra. Si algo falla, no deja
+     * restos. El título es el nombre del archivo sin `.pdf`.
+     */
+    suspend fun import(source: PlatformFile): ImportResult
+
+    /** Registra un PDF ya copiado. Lo usa [import]; también sirve en pruebas. */
     suspend fun add(newDocument: NewDocument): AddDocumentResult
 
     /** Recuerda la página de lectura (0 hasta `pageCount - 1`). */
