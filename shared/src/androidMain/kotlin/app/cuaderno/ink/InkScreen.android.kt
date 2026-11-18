@@ -28,6 +28,9 @@ import androidx.compose.ui.input.pointer.PointerId
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import app.cuaderno.text.PageTextBlock
+import app.cuaderno.text.TEXT_MOVE_BAR_HEIGHT
+import app.cuaderno.text.TEXT_RESIZE_HANDLE_WIDTH
+import androidx.compose.ui.platform.LocalDensity
 import app.cuaderno.text.RichTextToolbar
 import app.cuaderno.text.TextBlockUi
 import app.cuaderno.text.TextBlocksViewModel
@@ -127,6 +130,7 @@ private fun InkPageScreen(
     val currentTexts by rememberUpdatedState(texts)
     var lastDevice by remember { mutableStateOf("ninguno todavía") }
     var pageScale by remember { mutableFloatStateOf(1f) }
+    var pageOrigin by remember { mutableStateOf(Offset.Zero) }
 
     // Estado del editor de cada cuadro de texto (cursor, formato), y su alto en unidades de la página.
     val richStates = remember { HashMap<EntityId, RichTextState>() }
@@ -140,6 +144,24 @@ private fun InkPageScreen(
     fun textBlockAt(x: Float, y: Float): TextBlockUi? = currentTexts.blocks.lastOrNull { b ->
         x >= b.x && x <= b.x + b.width && y >= b.y && y <= b.y + (blockHeights[b.id] ?: MIN_TEXT_HEIGHT_UNITS)
     }
+
+    val density = LocalDensity.current
+    val moveBarPx = with(density) { TEXT_MOVE_BAR_HEIGHT.toPx() }
+    val resizeHandlePx = with(density) { TEXT_RESIZE_HANDLE_WIDTH.toPx() }
+
+    /** ¿El punto de la pantalla ([sx], [sy]) cae en el cuadro que se edita, incluidas sus asas? */
+    fun insideEditingArea(sx: Float, sy: Float): Boolean {
+        val b = currentTexts.editing ?: return false
+        val s = pageScale
+        val left = pageOrigin.x + b.x * s
+        val top = pageOrigin.y + b.y * s
+        val height = (blockHeights[b.id] ?: MIN_TEXT_HEIGHT_UNITS) * s
+        return sx >= left && sx <= left + b.width * s + resizeHandlePx && sy >= top - moveBarPx && sy <= top + height
+    }
+
+    // Dedos o lápiz que se apoyaron en el cuadro que se edita (o en sus asas): mientras sigan apoyados,
+    // ni desplazan la hoja ni escriben; el cuadro se encarga de ellos (cursor, mover, cambiar el ancho).
+    val grabbed = remember { HashSet<PointerId>() }
 
     // Al empezar a editar un cuadro: el cursor va a él y se abre el teclado. Al terminar: se cierra.
     // Mientras se edita, cada cambio se le pasa al ViewModel, que lo guarda.
@@ -251,6 +273,11 @@ private fun InkPageScreen(
                     awaitPointerEventScope {
                         while (true) {
                             val event = awaitPointerEvent(PointerEventPass.Initial)
+                            for (c in event.changes) {
+                                if (c.pressed && !c.previousPressed && insideEditingArea(c.position.x, c.position.y)) grabbed += c.id
+                            }
+                            grabbed.removeAll { id -> event.changes.none { it.id == id && it.pressed } }
+                            if (grabbed.isNotEmpty()) continue
                             val penDown = event.changes.any { (it.type == PointerType.Stylus || it.type == PointerType.Eraser) && it.pressed }
                             val touches = event.changes.filter { it.type == PointerType.Touch && it.pressed && it.previousPressed }
                             if (penDown || touches.isEmpty()) continue
@@ -282,7 +309,10 @@ private fun InkPageScreen(
             val fitHeight = PAGE_HEIGHT_UNITS * fitScale
             val vp = state.viewport.clamped(fitWidth, fitHeight, constraints.maxWidth.toFloat(), constraints.maxHeight.toFloat())
             val scale = fitScale * vp.zoom
-            SideEffect { pageScale = scale }
+            SideEffect {
+                pageScale = scale
+                pageOrigin = Offset(vp.offsetX, vp.offsetY)
+            }
             // La capa de tinta mide siempre lo que la pantalla, no lo que la hoja ampliada: con zoom la hoja
             // llega a millones de píxeles y la tinta de baja latencia se quedaba sin memoria.
             val view by rememberUpdatedState(vp)
@@ -331,8 +361,8 @@ private fun InkPageScreen(
                                     val x = (change.position.x - view.offsetX) / s
                                     val y = (change.position.y - view.offsetY) / s
                                     val editing = currentTexts.editing
-                                    // Dentro del cuadro que se está editando, el lápiz y el dedo mueven el cursor: no se tocan aquí.
-                                    if (editing != null && textBlockAt(x, y)?.id == editing.id) continue
+                                    // En el cuadro que se está editando (o sus asas), el lápiz y el dedo son del cuadro: no se tocan aquí.
+                                    if (change.id in grabbed) continue
                                     val starts = change.pressed && !change.previousPressed
                                     when (inputActionFor(change.type, current.eraserMode)) {
                                         // Escribir con el lápiz fuera del cuadro termina la edición del texto.
@@ -405,6 +435,8 @@ private fun InkPageScreen(
                             blockHeights[block.id] = it
                             textViewModel.onMeasured(block.id, it)
                         },
+                        onGeometry = { x, y, width -> textViewModel.onGeometryChanged(block.id, x, y, width) },
+                        onGeometryDone = { textViewModel.onGeometryDone(block.id) },
                     )
                 }
                 for (block in texts.blocks) if (block.id != texts.editingId) TextBlockOnPage(block, editing = false)

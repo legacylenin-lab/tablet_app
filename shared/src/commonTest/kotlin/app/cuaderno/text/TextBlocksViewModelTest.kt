@@ -100,6 +100,40 @@ class TextBlocksViewModelTest {
     }
 
     @Test
+    fun moverSeVeEnseguidaYSeGuardaAlSoltar() = runTest(dispatcher) {
+        val repo = FakeTextBlockRepository(listOf(testTextBlock(1, page, "<p>Uno</p>", x = 100, y = 100, width = 1000)))
+        val vm = viewModel(repo)
+        advanceUntilIdle()
+        vm.onGeometryChanged(testId(1), x = 300, y = 500, width = 1000)
+        runCurrent()
+        assertEquals(300, vm.state.value.blocks.single().x)
+        assertEquals(100, repo.visible.single().x)
+        vm.onGeometryDone(testId(1))
+        runCurrent()
+        val saved = repo.visible.single()
+        assertEquals(300, saved.x)
+        assertEquals(500, saved.y)
+        // Mover no cuenta como editar el texto.
+        assertEquals(0, repo.contentSaves)
+    }
+
+    @Test
+    fun elCuadroNoSeSaleDeLaHojaNiQuedaDemasiadoAngosto() = runTest(dispatcher) {
+        val repo = FakeTextBlockRepository(listOf(testTextBlock(1, page, "<p>Uno</p>")))
+        val vm = viewModel(repo)
+        advanceUntilIdle()
+        vm.onGeometryChanged(testId(1), x = -50, y = 5000, width = 10)
+        val b = vm.state.value.blocks.single()
+        assertEquals(0, b.x)
+        assertEquals(TextBlocksViewModel.MIN_WIDTH, b.width)
+        assertTrue(b.y < 2970)
+
+        vm.onGeometryChanged(testId(1), x = 1800, y = 100, width = 800)
+        val c = vm.state.value.blocks.single()
+        assertEquals(2100, c.x + c.width)
+    }
+
+    @Test
     fun loEscritoSeGuardaUnaVezAlDejarDeTeclear() = runTest(dispatcher) {
         val repo = FakeTextBlockRepository()
         val vm = viewModel(repo)

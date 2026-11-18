@@ -120,6 +120,31 @@ class TextBlocksViewModel(
         if (RichTextHtml.isBlank(editing.html)) delete(editing.id) else flush(editing.id)
     }
 
+    /**
+     * El usuario arrastra el cuadro [id] o su borde: se ve en ([x], [y]) con el ancho [width] (unidades de
+     * la página). El cuadro no se sale de la hoja ni queda más angosto que [MIN_WIDTH]. Se guarda al soltar.
+     */
+    fun onGeometryChanged(id: EntityId, x: Int, y: Int, width: Int) {
+        val w = width.coerceIn(MIN_WIDTH, PAGE_WIDTH)
+        val nx = x.coerceIn(0, PAGE_WIDTH - w)
+        val ny = y.coerceIn(0, PAGE_HEIGHT - LINE_HEIGHT.toInt())
+        _state.update { s -> s.copy(blocks = s.blocks.map { if (it.id == id) it.copy(x = nx, y = ny, width = w) else it }) }
+    }
+
+    /** Se soltó el cuadro [id] tras moverlo o cambiar su ancho: se guarda dónde quedó. */
+    fun onGeometryDone(id: EntityId) {
+        val block = _state.value.blocks.firstOrNull { it.id == id } ?: return
+        saveScope.launch {
+            try {
+                repo.moveResize(block.id, block.x, block.y, block.width)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                fail("No se pudo mover el texto: ${e.message}")
+            }
+        }
+    }
+
     /** Elimina el cuadro [id] (borrado suave). */
     fun onDelete(id: EntityId) {
         if (_state.value.editingId == id) _state.update { it.copy(editingId = null) }
