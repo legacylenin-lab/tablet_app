@@ -3,6 +3,7 @@ package app.cuaderno
 import app.cuaderno.domain.InkRepository
 import app.cuaderno.domain.NotebookRepository
 import app.cuaderno.domain.PageRepository
+import app.cuaderno.domain.TextBlockRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -19,5 +20,6 @@ class AppServices(
     val notebooks: NotebookRepository,
     val pages: PageRepository,
     val ink: InkRepository,
+    val text: TextBlockRepository,
     val saveScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
 )

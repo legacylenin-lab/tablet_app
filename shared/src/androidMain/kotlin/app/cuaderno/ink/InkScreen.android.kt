@@ -18,6 +18,20 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.withFrameNanos
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.input.pointer.PointerId
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import app.cuaderno.text.PageTextBlock
+import app.cuaderno.text.RichTextToolbar
+import app.cuaderno.text.TextBlockUi
+import app.cuaderno.text.TextBlocksViewModel
+import com.mohamedrejeb.richeditor.model.RichTextState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateListOf
@@ -78,6 +92,16 @@ private const val PAGE_HEIGHT_UNITS = 2970f
 
 private const val ERASER_RADIUS_PX = 28f
 
+/** Un toque del dedo que se mueve menos que esto (en píxeles) cuenta como toque, no como arrastre. */
+private const val TAP_SLOP_PX = 24f
+
+/** Alto que se supone a un cuadro de texto antes de medirlo: una línea (unidades de la página). */
+private const val MIN_TEXT_HEIGHT_UNITS = 60f
+
+/** Un cuadro de texto nuevo: a 1 cm del borde de lo que se ve y 12 cm de ancho. */
+private const val NEW_TEXT_MARGIN_UNITS = 100f
+private const val NEW_TEXT_WIDTH_UNITS = 1200
+
 /**
  * Hoja A4 donde escribe el lápiz con `androidx.ink`. Solo dibuja y recoge lo que hace el usuario:
  * qué trazos hay, guardar, borrar y deshacer lo decide [InkPageViewModel].
@@ -93,10 +117,45 @@ private fun InkPageScreen(
     viewModel: InkPageViewModel = viewModel(key = pageId.toString()) {
         InkPageViewModel(pageId, services.ink, services.saveScope)
     },
+    textViewModel: TextBlocksViewModel = viewModel(key = "text-$pageId") {
+        TextBlocksViewModel(pageId, services.text, services.saveScope)
+    },
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val current by rememberUpdatedState(state)
+    val texts by textViewModel.state.collectAsStateWithLifecycle()
+    val currentTexts by rememberUpdatedState(texts)
     var lastDevice by remember { mutableStateOf("ninguno todavía") }
+    var pageScale by remember { mutableFloatStateOf(1f) }
+
+    // Estado del editor de cada cuadro de texto (cursor, formato), y su alto en unidades de la página.
+    val richStates = remember { HashMap<EntityId, RichTextState>() }
+    fun richStateFor(block: TextBlockUi) = richStates.getOrPut(block.id) { RichTextState().apply { setHtml(block.html) } }
+    val blockHeights = remember { mutableStateMapOf<EntityId, Float>() }
+    val focusRequester = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
+    val keyboard = LocalSoftwareKeyboardController.current
+
+    /** El cuadro de texto que hay en el punto ([x], [y]) de la página, si hay alguno. */
+    fun textBlockAt(x: Float, y: Float): TextBlockUi? = currentTexts.blocks.lastOrNull { b ->
+        x >= b.x && x <= b.x + b.width && y >= b.y && y <= b.y + (blockHeights[b.id] ?: MIN_TEXT_HEIGHT_UNITS)
+    }
+
+    // Al empezar a editar un cuadro: el cursor va a él y se abre el teclado. Al terminar: se cierra.
+    // Mientras se edita, cada cambio se le pasa al ViewModel, que lo guarda.
+    LaunchedEffect(texts.editingId) {
+        val editing = texts.editing
+        if (editing == null) {
+            focusManager.clearFocus()
+            keyboard?.hide()
+            return@LaunchedEffect
+        }
+        withFrameNanos { }
+        runCatching { focusRequester.requestFocus() }
+        keyboard?.show()
+        val rich = richStateFor(editing)
+        snapshotFlow { rich.annotatedString }.collect { textViewModel.onContentChanged(editing.id, rich.toHtml()) }
+    }
 
     val tools = state.tools
     val brush = remember(tools.tool, tools.colorArgb, tools.width) { brushFor(tools.tool, tools.colorArgb, tools.width) }
@@ -123,6 +182,7 @@ private fun InkPageScreen(
             Text(
                 when {
                     state.message != null -> state.message!!
+                    texts.message != null -> texts.message!!
                     !state.loaded -> "Abriendo la página…"
                     else -> "Trazos: ${state.visibleCount}  ·  Guardados en la base de datos  ·  " +
                         "Último: $lastDevice  ·  Botón del lápiz: ${PenButton.clicks} pulsaciones"
@@ -146,16 +206,39 @@ private fun InkPageScreen(
                 OutlinedButton(onClick = viewModel::onFit, enabled = state.viewport.zoom > 1f, modifier = Modifier.padding(end = 8.dp)) {
                     Text("Ajustar (${(state.viewport.zoom * 100).roundToInt()}%)")
                 }
-                Button(onClick = viewModel::onClear) { Text("Limpiar") }
+                Button(onClick = viewModel::onClear, modifier = Modifier.padding(end = 8.dp)) { Text("Limpiar") }
+                OutlinedButton(
+                    onClick = {
+                        // El cuadro nuevo aparece arriba a la izquierda de lo que se ve de la hoja.
+                        val s = pageScale.coerceAtLeast(0.0001f)
+                        val vp = current.viewport
+                        val x = (-vp.offsetX / s).coerceAtLeast(0f) + NEW_TEXT_MARGIN_UNITS
+                        val y = (-vp.offsetY / s).coerceAtLeast(0f) + NEW_TEXT_MARGIN_UNITS
+                        textViewModel.onAddText(x.roundToInt(), y.roundToInt(), NEW_TEXT_WIDTH_UNITS)
+                    },
+                    enabled = texts.loaded,
+                ) { Text("Agregar texto") }
             }
         }
 
-        InkToolbar(
-            settings = state.tools,
-            eraserMode = state.eraserMode,
-            onSettings = viewModel::onToolSettings,
-            onEraserMode = viewModel::onEraserMode,
-        )
+        val editingBlock = texts.editing
+        if (editingBlock != null) {
+            // Mientras se escribe con el teclado, la barra de la tinta deja su lugar a la del formato.
+            RichTextToolbar(
+                state = richStateFor(editingBlock),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+            ) {
+                Button(onClick = textViewModel::onDoneEditing, modifier = Modifier.padding(end = 8.dp)) { Text("Listo") }
+                OutlinedButton(onClick = { textViewModel.onDelete(editingBlock.id) }) { Text("Eliminar texto") }
+            }
+        } else {
+            InkToolbar(
+                settings = state.tools,
+                eraserMode = state.eraserMode,
+                onSettings = viewModel::onToolSettings,
+                onEraserMode = viewModel::onEraserMode,
+            )
+        }
 
         BoxWithConstraints(
             modifier = Modifier
@@ -199,6 +282,7 @@ private fun InkPageScreen(
             val fitHeight = PAGE_HEIGHT_UNITS * fitScale
             val vp = state.viewport.clamped(fitWidth, fitHeight, constraints.maxWidth.toFloat(), constraints.maxHeight.toFloat())
             val scale = fitScale * vp.zoom
+            SideEffect { pageScale = scale }
             // La capa de tinta mide siempre lo que la pantalla, no lo que la hoja ampliada: con zoom la hoja
             // llega a millones de píxeles y la tinta de baja latencia se quedaba sin memoria.
             val view by rememberUpdatedState(vp)
@@ -228,9 +312,13 @@ private fun InkPageScreen(
                     .fillMaxSize()
                     // Se ejecuta ANTES (pasada Initial) que la tinta: lo que se consume aquí, la tinta no lo dibuja.
                     .pointerInput(Unit) {
+                        // Toques del dedo en curso (dónde empezó cada uno), para distinguir un toque de un arrastre.
+                        val touchStarts = HashMap<PointerId, Offset>()
+                        var severalFingers = false
                         awaitPointerEventScope {
                             while (true) {
                                 val event = awaitPointerEvent(PointerEventPass.Initial)
+                                if (event.changes.count { it.type == PointerType.Touch && it.pressed } > 1) severalFingers = true
                                 for (change in event.changes) {
                                     lastDevice = when (change.type) {
                                         PointerType.Stylus -> "lápiz"
@@ -239,22 +327,42 @@ private fun InkPageScreen(
                                         PointerType.Mouse -> "ratón"
                                         else -> "desconocido"
                                     }
+                                    val s = viewScale
+                                    val x = (change.position.x - view.offsetX) / s
+                                    val y = (change.position.y - view.offsetY) / s
+                                    val editing = currentTexts.editing
+                                    // Dentro del cuadro que se está editando, el lápiz y el dedo mueven el cursor: no se tocan aquí.
+                                    if (editing != null && textBlockAt(x, y)?.id == editing.id) continue
+                                    val starts = change.pressed && !change.previousPressed
                                     when (inputActionFor(change.type, current.eraserMode)) {
-                                        InputAction.DRAW -> Unit
+                                        // Escribir con el lápiz fuera del cuadro termina la edición del texto.
+                                        InputAction.DRAW -> if (starts && editing != null) textViewModel.onDoneEditing()
                                         InputAction.ERASE -> {
                                             change.consume()
                                             if (change.pressed) {
-                                                val s = viewScale
-                                                viewModel.onEraseAt(
-                                                    x = (change.position.x - view.offsetX) / s,
-                                                    y = (change.position.y - view.offsetY) / s,
-                                                    radius = ERASER_RADIUS_PX / s,
-                                                )
+                                                viewModel.onEraseAt(x, y, radius = ERASER_RADIUS_PX / s)
                                             } else if (change.previousPressed) {
                                                 viewModel.onEraseEnd()
                                             }
                                         }
-                                        InputAction.NAVIGATE, InputAction.IGNORE -> change.consume()
+                                        InputAction.NAVIGATE -> {
+                                            change.consume()
+                                            // Un toque corto con un dedo sobre un cuadro de texto lo abre para escribir;
+                                            // fuera de los cuadros, termina la edición.
+                                            if (starts) {
+                                                touchStarts[change.id] = change.position
+                                            } else if (!change.pressed && change.previousPressed) {
+                                                val start = touchStarts.remove(change.id)
+                                                val isTap = start != null && !severalFingers &&
+                                                    (change.position - start).getDistance() < TAP_SLOP_PX
+                                                if (isTap) {
+                                                    val hit = textBlockAt(x, y)
+                                                    if (hit != null) textViewModel.onEdit(hit.id) else textViewModel.onDoneEditing()
+                                                }
+                                                if (touchStarts.isEmpty()) severalFingers = false
+                                            }
+                                        }
+                                        InputAction.IGNORE -> change.consume()
                                     }
                                 }
                             }
@@ -282,6 +390,24 @@ private fun InkPageScreen(
                     }
                 }
                 // Trazo en curso, con baja latencia. Al terminar, se lo pasa al ViewModel, que lo muestra y lo guarda.
+                // Cuadros de texto. Los que no se editan van debajo de la tinta: el lápiz escribe encima de ellos.
+                @Composable
+                fun TextBlockOnPage(block: TextBlockUi, editing: Boolean) = key(block.id) {
+                    PageTextBlock(
+                        block = block,
+                        state = richStateFor(block),
+                        editing = editing,
+                        scale = scale,
+                        offsetX = vp.offsetX,
+                        offsetY = vp.offsetY,
+                        focusRequester = focusRequester,
+                        onHeight = {
+                            blockHeights[block.id] = it
+                            textViewModel.onMeasured(block.id, it)
+                        },
+                    )
+                }
+                for (block in texts.blocks) if (block.id != texts.editingId) TextBlockOnPage(block, editing = false)
                 InProgressStrokes(
                     defaultBrush = if (state.loaded) brush else null,
                     nextBrush = { currentBrush.value },
@@ -296,6 +422,8 @@ private fun InkPageScreen(
                         }
                     },
                 )
+                // El cuadro que se está editando va encima de la tinta, para que reciba el lápiz y el dedo.
+                texts.editing?.let { TextBlockOnPage(it, editing = true) }
             }
         }
     }

@@ -4,6 +4,7 @@ import android.content.Context
 import app.cuaderno.data.SqlInkRepository
 import app.cuaderno.data.SqlNotebookRepository
 import app.cuaderno.data.SqlPageRepository
+import app.cuaderno.data.SqlTextBlockRepository
 import app.cuaderno.data.createAndroidDataContext
 import app.cuaderno.domain.RandomIdGenerator
 import app.cuaderno.model.EntityId
@@ -33,6 +34,7 @@ class AppContainer(context: Context) {
             notebooks = SqlNotebookRepository(data, Dispatchers.IO),
             pages = SqlPageRepository(data, Dispatchers.IO),
             ink = SqlInkRepository(data, Dispatchers.IO),
+            text = SqlTextBlockRepository(data, Dispatchers.IO),
         )
     }
 }

@@ -56,4 +56,12 @@ class RichTextHtmlTest {
         assertEquals("<h1>Hola mundo</h1>", html)
         assertEquals("<h1>Hola mundo</h1>", RichTextHtml.normalize(RichTextState().apply { setHtml(html) }.toHtml()))
     }
+
+    @Test
+    fun reconoceUnTextoVacio() {
+        kotlin.test.assertTrue(RichTextHtml.isBlank(""))
+        kotlin.test.assertTrue(RichTextHtml.isBlank("<p></p>"))
+        kotlin.test.assertTrue(RichTextHtml.isBlank("<p>&nbsp; <br></p>"))
+        kotlin.test.assertFalse(RichTextHtml.isBlank("<p>ñ</p>"))
+    }
 }

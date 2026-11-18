@@ -15,6 +15,10 @@ object RichTextHtml {
     private val dangerousElements = Regex("""<(script|style)\b[^>]*>.*?</\1\s*>""", setOf(RegexOption.DOT_MATCHES_ALL, RegexOption.IGNORE_CASE))
     private val anyTag = Regex("""</?([a-zA-Z][a-zA-Z0-9]*)\b[^>]*>""")
 
+    /** `true` si el HTML no tiene nada que leer: sin letras, solo etiquetas, espacios o `&nbsp;`. */
+    fun isBlank(html: String): Boolean =
+        anyTag.replace(html, "").replace("&nbsp;", " ").replace(' ', ' ').isBlank()
+
     fun normalize(html: String): String {
         var s = dangerousElements.replace(html, "")
         s = headingParagraph.replace(s) { m ->
