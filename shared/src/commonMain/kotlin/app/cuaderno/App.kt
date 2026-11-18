@@ -1,6 +1,15 @@
 package app.cuaderno
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.Modifier
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -23,7 +32,13 @@ fun App(services: AppServices? = null) {
         var reading by remember { mutableStateOf<Document?>(null) }
         val current = open
         val document = reading
-        when {
+        // La app dibuja hasta el borde (edge-to-edge): se deja libre el espacio de la hora y de la
+        // barra de íconos de Android, para que ningún botón quede debajo. El teclado no cuenta aquí.
+        Box(
+            Modifier.fillMaxSize()
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .windowInsetsPadding(WindowInsets.systemBars.union(WindowInsets.displayCutout)),
+        ) { when {
             // Sin base de datos (por ejemplo, la PC por ahora) no hay lista: solo la pantalla de prueba.
             services == null -> InkPrototypeScreen(null)
             document != null -> ScopedViewModels(key = document.meta.id) {
@@ -38,6 +53,6 @@ fun App(services: AppServices? = null) {
             else -> ScopedViewModels(key = current.meta.id) {
                 InkPrototypeScreen(services, notebook = current, onBack = { open = null })
             }
-        }
+        } }
     }
 }
