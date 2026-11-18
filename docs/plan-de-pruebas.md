@@ -56,6 +56,7 @@
   - selección de texto con el mouse en Windows;
   - búsqueda;
   - fijar el umbral de RNF-04.
+  - **Resultado en Windows (18/11/2026, prototipo en `desktopApp`, solo en memoria):** `PdfBoxEngine` (PDFBox 3.0.8) detrás de `PdfEngine` y el mismo lector de la tablet. Un PDF de texto se ve bien; un libro escaneado con imágenes JPEG 2000 sale en blanco (PQ-27). Falta: zoom con el mouse, selección de texto y búsqueda.
   - **Resultado en Android (18/11/2026, tablet Lenovo TB336ZU, Android 16):** `PdfRenderer` detrás de `PdfEngine` funciona con un PDF real de **1702 páginas y 164 MB**: abrir 0,06 s, primera página en pantalla unos 0,3 s y cada cambio de página unos 0,22 s (página de 1600 px de ancho; `adb logcat -s PdfTiming`). Saltar a una página lejana con «Ir a…» o la barra también es inmediato. El zoom hasta 500% dibuja nítido solo el rectángulo visible (`renderRegion`), sin cierres ni lentitud. Umbral propuesto para RNF-04 en PQ-26. **Falta:** la parte de Windows (PDFBox), la selección de texto con el mouse, la búsqueda y la capa de anotaciones superpuesta (con RF-13).
 - **P-2 (exportación, v1.x):** estampar trazos vectoriales sobre un PDF existente con PDFBox y PdfBox-Android. Plan B: páginas convertidas en imagen.
 - **P-3 (cifrado, v2):** TLS 1.3 mutuo con Ktor y fijación de huella, entre la tablet y Windows.
