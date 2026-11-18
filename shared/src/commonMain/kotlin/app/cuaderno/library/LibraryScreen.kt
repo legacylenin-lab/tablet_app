@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
@@ -68,16 +69,29 @@ fun LibraryScreen(
             ) {
                 items(list, key = { it.meta.id.toString() }) { document ->
                     Card(modifier = Modifier.fillMaxWidth().clickable { onOpen(document) }) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text(document.title, style = MaterialTheme.typography.titleMedium)
-                            Text(
-                                "${LibraryViewModel.pagesLabel(document.pageCount)} · ${LibraryViewModel.sizeLabel(document.sizeBytes)}",
-                                style = MaterialTheme.typography.bodySmall,
-                            )
+                        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(document.title, style = MaterialTheme.typography.titleMedium)
+                                Text(
+                                    "${LibraryViewModel.pagesLabel(document.pageCount)} · ${LibraryViewModel.sizeLabel(document.sizeBytes)}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                            }
+                            OutlinedButton(onClick = { viewModel.onDeleteClick(document) }) { Text("Eliminar") }
                         }
                     }
                 }
             }
         }
+    }
+
+    state.confirmDelete?.let { document ->
+        AlertDialog(
+            onDismissRequest = viewModel::onDismissDelete,
+            title = { Text("¿Eliminar «${document.title}»?") },
+            text = { Text("El documento dejará de verse en la biblioteca. Tu archivo original no se toca.") },
+            confirmButton = { Button(onClick = viewModel::onConfirmDelete) { Text("Eliminar") } },
+            dismissButton = { TextButton(onClick = viewModel::onDismissDelete) { Text("Cancelar") } },
+        )
     }
 }

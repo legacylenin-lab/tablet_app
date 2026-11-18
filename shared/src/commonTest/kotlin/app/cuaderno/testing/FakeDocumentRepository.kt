@@ -56,5 +56,8 @@ class FakeDocumentRepository(initial: List<Document> = emptyList()) : DocumentRe
         savedPages += page
     }
 
-    override suspend fun delete(id: EntityId) = Unit
+    override suspend fun delete(id: EntityId) {
+        failWith?.let { throw it }
+        items.value = items.value.map { if (it.meta.id == id) it.copy(meta = it.meta.deleted(it.meta.updatedHlc)) else it }
+    }
 }

@@ -22,6 +22,8 @@ data class LibraryUiState(
     val documents: List<Document>? = null,
     val importing: Boolean = false,
     val message: String? = null,
+    /** Documento que espera confirmación para eliminarse. */
+    val confirmDelete: Document? = null,
 )
 
 /** ViewModel de la biblioteca (RF-10): lista de PDF e importar uno nuevo. */
@@ -50,6 +52,32 @@ class LibraryViewModel(private val documents: DocumentRepository) : ViewModel() 
 
     fun onDismissMessage() {
         local.value = local.value.copy(message = null)
+    }
+
+    fun onDeleteClick(document: Document) {
+        local.value = local.value.copy(confirmDelete = document)
+    }
+
+    fun onDismissDelete() {
+        local.value = local.value.copy(confirmDelete = null)
+    }
+
+    /**
+     * Elimina el documento confirmado (borrado suave): deja de verse en la biblioteca. El PDF guardado
+     * no se borra, así que importarlo otra vez lo recupera con la página donde iba.
+     */
+    fun onConfirmDelete() {
+        val document = local.value.confirmDelete ?: return
+        local.value = local.value.copy(confirmDelete = null)
+        viewModelScope.launch {
+            try {
+                documents.delete(document.meta.id)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                local.value = local.value.copy(message = "No se pudo eliminar «${document.title}»: ${e.message}")
+            }
+        }
     }
 
     companion object {

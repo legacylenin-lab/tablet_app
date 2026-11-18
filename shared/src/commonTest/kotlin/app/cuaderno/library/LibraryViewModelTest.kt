@@ -81,6 +81,36 @@ class LibraryViewModelTest {
     }
 
     @Test
+    fun eliminarPideConfirmacionYEsBorradoSuave() {
+        val repo = FakeDocumentRepository(listOf(testDocument(1, "Álgebra"), testDocument(2, "Física")))
+        val vm = LibraryViewModel(repo)
+        val algebra = vm.state.value.documents!!.first()
+        vm.onDeleteClick(algebra)
+        assertEquals(algebra, vm.state.value.confirmDelete)
+        vm.onDismissDelete()
+        assertNull(vm.state.value.confirmDelete)
+        assertEquals(2, vm.state.value.documents?.size)
+
+        vm.onDeleteClick(algebra)
+        vm.onConfirmDelete()
+        assertNull(vm.state.value.confirmDelete)
+        assertEquals(listOf("Física"), vm.state.value.documents?.map { it.title })
+        // Borrado suave: sigue guardado, solo marcado como borrado.
+        assertTrue(repo.items.value.first().meta.isDeleted)
+    }
+
+    @Test
+    fun unErrorAlEliminarSeMuestraComoAviso() {
+        val repo = FakeDocumentRepository(listOf(testDocument(1, "Álgebra")))
+        val vm = LibraryViewModel(repo)
+        repo.failWith = IllegalStateException("disco lleno")
+        vm.onDeleteClick(vm.state.value.documents!!.first())
+        vm.onConfirmDelete()
+        assertTrue("disco lleno" in assertNotNull(vm.state.value.message))
+        assertEquals(1, vm.state.value.documents?.size)
+    }
+
+    @Test
     fun tamanosLegibles() {
         assertEquals("1 KB", LibraryViewModel.sizeLabel(10))
         assertEquals("850 KB", LibraryViewModel.sizeLabel(850 * 1024))
