@@ -6,6 +6,7 @@ import app.cuaderno.domain.NotebookRepository
 import app.cuaderno.domain.PageRepository
 import app.cuaderno.domain.PdfEngine
 import app.cuaderno.domain.TextBlockRepository
+import app.cuaderno.library.LibraryServices
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -26,4 +27,7 @@ class AppServices(
     val documents: DocumentRepository,
     val pdf: PdfEngine,
     val saveScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
-)
+) {
+    /** Lo que usan la Biblioteca y el lector de PDF. */
+    val library: LibraryServices get() = LibraryServices(documents, pdf, saveScope)
+}

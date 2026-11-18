@@ -23,7 +23,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import app.cuaderno.AppServices
 import app.cuaderno.model.Document
 
 /**
@@ -32,8 +31,9 @@ import app.cuaderno.model.Document
  */
 @Composable
 fun LibraryScreen(
-    services: AppServices,
-    onBack: () -> Unit,
+    services: LibraryServices,
+    /** Volver a los cuadernos; con `null` no hay botón (el prototipo de la PC no tiene cuadernos). */
+    onBack: (() -> Unit)?,
     onOpen: (Document) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: LibraryViewModel = viewModel { LibraryViewModel(services.documents) },
@@ -43,7 +43,9 @@ fun LibraryScreen(
 
     Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            OutlinedButton(onClick = onBack, modifier = Modifier.padding(end = 12.dp)) { Text("◀ Cuadernos") }
+            if (onBack != null) {
+                OutlinedButton(onClick = onBack, modifier = Modifier.padding(end = 12.dp)) { Text("◀ Cuadernos") }
+            }
             Text("Biblioteca", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
             Button(onClick = { pickPdf?.invoke() }, enabled = pickPdf != null && !state.importing) {
                 Text(if (state.importing) "Importando…" else "Importar PDF")

@@ -43,11 +43,11 @@ fun App(services: AppServices? = null) {
             services == null -> InkPrototypeScreen(null)
             document != null -> ScopedViewModels(key = document.meta.id) {
                 SystemBackHandler { reading = null }
-                ReaderScreen(services, document, onBack = { reading = null })
+                ReaderScreen(services.library, document, onBack = { reading = null })
             }
             library -> {
                 SystemBackHandler { library = false }
-                LibraryScreen(services, onBack = { library = false }, onOpen = { reading = it })
+                LibraryScreen(services.library, onBack = { library = false }, onOpen = { reading = it })
             }
             current == null -> NotebookListScreen(services, onOpen = { open = it }, onLibrary = { library = true })
             else -> ScopedViewModels(key = current.meta.id) {

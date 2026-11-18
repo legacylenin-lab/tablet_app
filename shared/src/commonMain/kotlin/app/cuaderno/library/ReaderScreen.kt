@@ -41,7 +41,6 @@ import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import app.cuaderno.AppServices
 import app.cuaderno.domain.RenderedPage
 import app.cuaderno.model.Document
 
@@ -54,7 +53,7 @@ expect fun RenderedPage.toImageBitmap(): ImageBitmap
  */
 @Composable
 fun ReaderScreen(
-    services: AppServices,
+    services: LibraryServices,
     document: Document,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
