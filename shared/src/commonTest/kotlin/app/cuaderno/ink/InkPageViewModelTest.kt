@@ -113,6 +113,34 @@ class InkPageViewModelTest {
     }
 
     @Test
+    fun deshacerSigueElOrdenDeTrazosYOtrasAcciones() {
+        val vm = viewModel(FakeInkRepository())
+        val log = mutableListOf<String>()
+        val textAction = object : app.cuaderno.UndoableAction {
+            override fun undo() { log += "deshacer texto" }
+            override fun redo() { log += "rehacer texto" }
+        }
+        vm.onStrokesDrawn(listOf(newLine(0, 500, 100)))
+        vm.onOtherAction(textAction)
+        vm.onStrokesDrawn(listOf(newLine(0, 500, 200)))
+
+        vm.onUndo()
+        assertEquals(1, vm.state.value.visibleCount)
+        assertEquals(emptyList(), log)
+        vm.onUndo()
+        assertEquals(listOf("deshacer texto"), log)
+        assertEquals(1, vm.state.value.visibleCount)
+        vm.onUndo()
+        assertEquals(0, vm.state.value.visibleCount)
+        assertFalse(vm.state.value.canUndo)
+
+        vm.onRedo()
+        vm.onRedo()
+        assertEquals(listOf("deshacer texto", "rehacer texto"), log)
+        assertEquals(1, vm.state.value.visibleCount)
+    }
+
+    @Test
     fun elBotonDelLapizAlternaSoloConPulsacionesNuevas() {
         val vm = viewModel(FakeInkRepository())
         val start = PenButton.clicks

@@ -2,6 +2,7 @@ package app.cuaderno.ink
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.cuaderno.UndoableAction
 import app.cuaderno.domain.InkRepository
 import app.cuaderno.domain.NewStroke
 import app.cuaderno.model.EntityId
@@ -71,14 +72,19 @@ class InkPageViewModel(
 ) : ViewModel() {
     private enum class Kind { DRAW, ERASE }
 
-    /** Algo que hizo el usuario y se puede deshacer: dibujar o borrar uno o varios trazos. */
-    private class Action(val kind: Kind, val keys: List<Long>)
+    /** Algo que hizo el usuario con la tinta y se puede deshacer: dibujar o borrar uno o varios trazos. */
+    private inner class Action(val kind: Kind, val keys: List<Long>) : UndoableAction {
+        override fun undo() = apply(this, undo = true)
+
+        override fun redo() = apply(this, undo = false)
+    }
 
     private val _state = MutableStateFlow(InkPageUiState())
     val state: StateFlow<InkPageUiState> = _state.asStateFlow()
 
-    private val undoStack = ArrayDeque<Action>()
-    private val redoStack = ArrayDeque<Action>()
+    /** Historial de la hoja: trazos y, por [onOtherAction], también lo que se hace con los textos. */
+    private val undoStack = ArrayDeque<UndoableAction>()
+    private val redoStack = ArrayDeque<UndoableAction>()
     private val ids = HashMap<Long, CompletableDeferred<EntityId>>()
     private val erasing = mutableListOf<Long>()
     private var nextKey = 1L
@@ -154,16 +160,22 @@ class InkPageViewModel(
         persist(keys, visible = false)
     }
 
+    /**
+     * Otra parte de la página hizo algo que se puede deshacer (por ejemplo, eliminar un texto): entra en
+     * el mismo historial que los trazos, para que «Deshacer» siga el orden en que el usuario hizo las cosas.
+     */
+    fun onOtherAction(action: UndoableAction) = push(action)
+
     fun onUndo() {
         val action = undoStack.removeLastOrNull() ?: return
-        apply(action, undo = true)
+        action.undo()
         redoStack.addLast(action)
         refreshHistory()
     }
 
     fun onRedo() {
         val action = redoStack.removeLastOrNull() ?: return
-        apply(action, undo = false)
+        action.redo()
         undoStack.addLast(action)
         refreshHistory()
     }
@@ -191,7 +203,7 @@ class InkPageViewModel(
         persist(action.keys, show)
     }
 
-    private fun push(action: Action) {
+    private fun push(action: UndoableAction) {
         undoStack.addLast(action)
         redoStack.clear()
         refreshHistory()

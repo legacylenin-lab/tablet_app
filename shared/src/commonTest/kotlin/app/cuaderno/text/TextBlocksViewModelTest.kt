@@ -219,6 +219,59 @@ class TextBlocksViewModelTest {
     }
 
     @Test
+    fun deshacerDevuelveUnTextoEliminadoYRehacerLoVuelveABorrar() = runTest(dispatcher) {
+        val repo = FakeTextBlockRepository(listOf(testTextBlock(1, page, "<p><b>Importante</b></p>", x = 300, y = 400, width = 900)))
+        val vm = viewModel(repo)
+        advanceUntilIdle()
+        val undo = assertNotNull(vm.onDelete(testId(1)))
+        advanceUntilIdle()
+        assertEquals(emptyList(), repo.visible)
+
+        undo.undo()
+        advanceUntilIdle()
+        val back = repo.visible.single()
+        assertEquals("<p><b>Importante</b></p>", back.content)
+        assertEquals(300, back.x)
+        assertEquals(400, back.y)
+        assertEquals(900, back.width)
+        assertEquals(1, vm.state.value.blocks.size)
+
+        undo.redo()
+        advanceUntilIdle()
+        assertEquals(emptyList(), repo.visible)
+        assertEquals(emptyList(), vm.state.value.blocks)
+
+        // Se puede deshacer otra vez después de rehacer.
+        undo.undo()
+        advanceUntilIdle()
+        assertEquals(1, repo.visible.size)
+    }
+
+    @Test
+    fun borrarTextosEliminaTodosYSeDeshaceDeUnaVez() = runTest(dispatcher) {
+        val repo = FakeTextBlockRepository(listOf(testTextBlock(1, page, "<p>Uno</p>"), testTextBlock(2, page, "<p>Dos</p>", y = 600)))
+        val vm = viewModel(repo)
+        advanceUntilIdle()
+        vm.onEdit(testId(1))
+        val undo = assertNotNull(vm.onDeleteAll())
+        advanceUntilIdle()
+        assertNull(vm.state.value.editingId)
+        assertEquals(emptyList(), repo.visible)
+
+        undo.undo()
+        advanceUntilIdle()
+        assertEquals(listOf("<p>Uno</p>", "<p>Dos</p>"), repo.visible.map { it.content })
+    }
+
+    @Test
+    fun sinTextosNoHayNadaQueBorrar() = runTest(dispatcher) {
+        val vm = viewModel(FakeTextBlockRepository())
+        advanceUntilIdle()
+        assertNull(vm.onDeleteAll())
+        assertNull(vm.onDelete(testId(1)))
+    }
+
+    @Test
     fun unErrorAlCrearSeMuestraComoAviso() = runTest(dispatcher) {
         val repo = FakeTextBlockRepository()
         repo.failWith = IllegalStateException("disco lleno")

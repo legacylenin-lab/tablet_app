@@ -3,6 +3,8 @@ package app.cuaderno.ink
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -211,14 +213,14 @@ private fun InkPageScreen(
                 },
                 style = MaterialTheme.typography.bodySmall,
             )
-            Row(modifier = Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(modifier = Modifier.fillMaxWidth().padding(top = 6.dp).horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically) {
                 OutlinedButton(onClick = controls.onPrevious, enabled = controls.nav.canGoBack, modifier = Modifier.padding(end = 8.dp)) { Text("◀") }
                 OutlinedButton(onClick = controls.onNext, enabled = controls.nav.canGoForward, modifier = Modifier.padding(end = 8.dp)) { Text("▶") }
                 OutlinedButton(onClick = controls.onAdd, modifier = Modifier.padding(end = 8.dp)) { Text("Página nueva") }
                 OutlinedButton(onClick = controls.onDuplicate, modifier = Modifier.padding(end = 8.dp)) { Text("Duplicar") }
                 OutlinedButton(onClick = controls.onDelete, enabled = controls.nav.total > 1) { Text("Eliminar página") }
             }
-            Row(modifier = Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(modifier = Modifier.fillMaxWidth().padding(top = 6.dp).horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically) {
                 OutlinedButton(onClick = viewModel::onUndo, enabled = state.canUndo, modifier = Modifier.padding(end = 8.dp)) {
                     Text("Deshacer")
                 }
@@ -228,7 +230,15 @@ private fun InkPageScreen(
                 OutlinedButton(onClick = viewModel::onFit, enabled = state.viewport.zoom > 1f, modifier = Modifier.padding(end = 8.dp)) {
                     Text("Ajustar (${(state.viewport.zoom * 100).roundToInt()}%)")
                 }
-                Button(onClick = viewModel::onClear, modifier = Modifier.padding(end = 8.dp)) { Text("Limpiar") }
+                // Borrar trazos y borrar textos son botones aparte; los dos se pueden deshacer.
+                Button(onClick = viewModel::onClear, enabled = state.visibleCount > 0, modifier = Modifier.padding(end = 8.dp)) {
+                    Text("Borrar trazos")
+                }
+                OutlinedButton(
+                    onClick = { textViewModel.onDeleteAll()?.let(viewModel::onOtherAction) },
+                    enabled = texts.blocks.isNotEmpty(),
+                    modifier = Modifier.padding(end = 8.dp),
+                ) { Text("Borrar textos") }
                 OutlinedButton(
                     onClick = {
                         // El cuadro nuevo aparece arriba a la izquierda de lo que se ve de la hoja.
@@ -251,7 +261,9 @@ private fun InkPageScreen(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
             ) {
                 Button(onClick = textViewModel::onDoneEditing, modifier = Modifier.padding(end = 8.dp)) { Text("Listo") }
-                OutlinedButton(onClick = { textViewModel.onDelete(editingBlock.id) }) { Text("Eliminar texto") }
+                OutlinedButton(onClick = { textViewModel.onDelete(editingBlock.id)?.let(viewModel::onOtherAction) }) {
+                    Text("Eliminar texto")
+                }
             }
         } else {
             InkToolbar(

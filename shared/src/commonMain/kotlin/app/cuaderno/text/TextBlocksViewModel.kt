@@ -2,11 +2,13 @@ package app.cuaderno.text
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.cuaderno.UndoableAction
 import app.cuaderno.domain.TextBlockRepository
 import app.cuaderno.model.EntityId
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlin.concurrent.Volatile
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -145,10 +147,60 @@ class TextBlocksViewModel(
         }
     }
 
-    /** Elimina el cuadro [id] (borrado suave). */
-    fun onDelete(id: EntityId) {
+    /**
+     * Elimina el cuadro [id] (borrado suave). Devuelve cómo deshacerlo, para el historial de la hoja;
+     * `null` si no había tal cuadro.
+     */
+    fun onDelete(id: EntityId): UndoableAction? {
+        val block = _state.value.blocks.firstOrNull { it.id == id } ?: return null
         if (_state.value.editingId == id) _state.update { it.copy(editingId = null) }
         delete(id)
+        return Removal(listOf(block))
+    }
+
+    /** Elimina todos los cuadros de la página («Borrar textos»). Devuelve cómo deshacerlo; `null` si no había ninguno. */
+    fun onDeleteAll(): UndoableAction? {
+        val blocks = _state.value.blocks
+        if (blocks.isEmpty()) return null
+        _state.update { it.copy(editingId = null) }
+        for (b in blocks) delete(b.id)
+        return Removal(blocks)
+    }
+
+    /**
+     * Cuadros eliminados que «Deshacer» vuelve a poner. Como el repositorio no tiene «restaurar», se
+     * crean de nuevo con la misma posición, ancho y texto (el borrado queda guardado igual). Rehacer
+     * elimina los cuadros recreados.
+     */
+    private inner class Removal(blocks: List<TextBlockUi>) : UndoableAction {
+        // Se cambia desde el hilo de los guardados y se lee desde la pantalla.
+        @Volatile
+        private var current = blocks
+
+        override fun undo() {
+            val removed = current
+            saveScope.launch {
+                try {
+                    current = removed.map { recreate(it) }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    fail("No se pudo recuperar el texto: ${e.message}")
+                }
+            }
+        }
+
+        override fun redo() {
+            for (b in current) delete(b.id)
+        }
+    }
+
+    private suspend fun recreate(old: TextBlockUi): TextBlockUi {
+        val created = repo.create(pageId, old.x, old.y, old.width)
+        if (!RichTextHtml.isBlank(old.html)) repo.updateContent(created.meta.id, old.html)
+        val ui = old.copy(id = created.meta.id)
+        _state.update { it.copy(blocks = it.blocks + ui) }
+        return ui
     }
 
     override fun onCleared() {
