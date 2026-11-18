@@ -3,8 +3,8 @@
 > Lo actualiza el agente al cerrar cada sesión. Es breve: dónde estamos y qué sigue.
 
 **Versión en curso:** v1 (MVP Android)
-**Etapa actual:** 4, cuadernos, páginas y texto. Hechos: cuadernos, páginas, ViewModels (PQ-24) y textos sobre la hoja (RF-05). Falta reordenar páginas.
-**Última actualización:** 17/11/2026
+**Etapa actual:** 5, Biblioteca. En la tablet está completa (importar, leer, zoom, ir a una página, recordar la última, eliminar). Queda la parte de Windows del prototipo P-1, que depende de PQ-27.
+**Última actualización:** 18/11/2026
 
 ## Hecho
 - **Etapa 1:** proyecto base KMP (Android + Desktop) corriendo en el emulador y en Windows.
@@ -26,13 +26,20 @@
 - **Gesto «atrás» (PQ-23) y botón del lápiz con un solo toque (PQ-20)**, probados en la tablet.
 - **ViewModels en código común (PQ-24), probado en la tablet:** `NotebookListViewModel`, `NotebookPagesViewModel` e `InkPageViewModel` (`StateFlow` y eventos). Los de cada cuaderno y cada página se descartan al salir (`ScopedViewModels`), hasta que llegue Navigation Compose. En `androidMain` queda solo lo propio de la tinta.
 - **Textos sobre la hoja (RF-05), probado en la tablet:** «Agregar texto» crea un cuadro (`TextBlocksViewModel`, `PageTextBlock`) que no se encima con otros; se guarda solo al dejar de teclear; un cuadro vacío se borra al terminar. Se edita tocándolo con el dedo; el lápiz escribe tinta encima de los textos que no se editan. Al editar: barra «✥ Mover», franja ↔ para el ancho, barra de formato deslizable y modo **Lápiz** (inicial: a mano, Android lo convierte en texto) o **Teclado**, que se cambia con dedo o lápiz. Deshacer/Rehacer siguen el orden de trazos y textos (`UndoableAction`); «Borrar trazos» y «Borrar textos» son botones aparte.
-- **Pruebas:** 228 pruebas propias en verde en la PC (`./gradlew build`), más las instrumentadas de la tinta en la tablet (`./gradlew :shared:connectedAndroidDeviceTest`).
+- **Etapa 4 completa (18/11/2026):** reordenar páginas con «Mover ◀ / ▶» (RF-08) y se quitó la pantalla provisional «Probar texto».
+- **Etapa 5, Biblioteca (RF-10, RF-12), probada en la tablet con PDF de 48 y de 1702 páginas:** botón «Biblioteca» en «Mis cuadernos». «Importar PDF» (selector del sistema, solo PDF) copia el archivo a `documents/<sha256>.pdf` (`FileDocumentStore`), comprueba que sea PDF, cuenta páginas y lo registra (`DocumentRepository.import`, `ImportResult` como en `arquitectura.md` §7); el mismo PDF no se duplica. Eliminar con borrado suave; al reimportar vuelve con su página. Lector (`ReaderViewModel`): página a lo ancho, ◀ ▶, «Ir a…» con número, barra deslizable (salta al soltar), zoom con dos dedos (`PageViewport`, 100%–500%) que redibuja nítido solo el rectángulo visible (`PdfEngine.renderRegion`), «Ajustar», y recuerda la última página (se guarda tras 1 s quieto).
+- **Motor de PDF:** `AndroidPdfEngine` (`PdfRenderer`). Medido (P-1): abrir 0,06 s, primera página 0,3 s, cambio de página 0,22 s con 1702 páginas (`adb logcat -s PdfTiming`).
+- **Toda la app deja libre el espacio de la hora y de la barra de íconos de Android** (`App.kt`): antes la barra deslizable quedaba escondida.
+- **Windows, prototipo P-1:** `PdfBoxEngine` (PDFBox 3.0.8, en validación) y `desktopApp` muestra la Biblioteca y el lector **sin guardar nada** (base en memoria, PDF en carpeta temporal). Los PDF de texto se ven bien; los escaneados con JPEG 2000 salen en blanco (PQ-27). Faltan zoom con el mouse, selección de texto y búsqueda.
+- **Pruebas:** 272 pruebas propias en verde en la PC (`./gradlew build`), más las instrumentadas de la tinta en la tablet (`./gradlew :shared:connectedAndroidDeviceTest`).
 
 ## En curso
-- Nada abierto: todo está guardado y subido a GitHub.
+- Nada abierto en el código. El cierre de esta sesión (documentos) queda por guardar en un commit.
 
 ## Siguiente
-- **Etapa 4:** reordenar páginas (parte de RF-08). Después, quitar la pantalla provisional «Probar texto» de la lista de cuadernos, que ya no hace falta.
+- **Esperar a Leyni:** PQ-27 (JPEG 2000 en Windows), PQ-26 (umbral de RNF-04), PC-02 (candado para congelar la vista) y PQ-25.
+- **Si Leyni no ha respondido:** pasar a la **etapa 6** (respaldo y restauración en la tablet: último paso de la restauración, interfaz `BackupService` en `core:domain`, pantalla), que no depende de nada pendiente. Con eso se llega al cierre de la v1.
+- **Windows (P-1), cuando se decida PQ-27:** zoom con Ctrl + rueda del mouse, selección de texto con el mouse y búsqueda.
 - **Textos, detalles conocidos:** la conversión a mano tarda cerca de 1 s en mostrar la línea roja (la dibuja el teclado de Android, igual en los dos modos; no depende de la app). Con el teclado flotante funciona bien; si el teclado acoplado tapara un texto de la parte baja, habrá que desplazar la hoja (aún no visto). Deshacer un texto eliminado lo recrea con un id nuevo (PQ-25, para Leyni).
 - **Antes de cerrar la v1:** medir la latencia con cámara lenta contra Nebo (PQ-21, `plan-de-pruebas.md` §7.1).
 - Al inicio de cada etapa: revisar si ya hay una versión estable de Compose Material 3 (PQ-04b).
@@ -41,6 +48,7 @@
 
 ## Bloqueos o pendientes
 - **Revisión de Leyni (17/11/2026):** aprobó PC-01 (texto y lápiz en la misma página, en la v1), PQ-19 (se queda `androidx.ink` 1.0.0) y PQ-23 (`BackHandler`). PQ-20: se desactivó en los ajustes de la tablet el panel de Lenovo que capturaba el botón del lápiz; probar que un solo toque alterne lápiz/borrador. PQ-21: `androidx.ink` ya usa búfer frontal, predicción y entrada sin agrupar; Nebo (MyScript iink, comercial) no se adopta; medir contra Nebo. PQ-24 aprobado: ViewModels en código común antes de RF-05 (implementado).
-- **Abierto para Leyni:** PQ-25 (agregar `restore` al contrato de los textos).
+- **Abierto para Leyni:** PQ-25 (agregar `restore` al contrato de los textos), PQ-26 (umbral de RNF-04: propuesta de 2 s), PQ-27 (PDFBox no muestra imágenes JPEG 2000) y PC-02 (candado en el lector y los cuadernos).
+- **Pregunta del dueño (18/11/2026):** cuándo se trabaja la estética de la app. Los documentos no tienen una etapa de diseño visual: solo RNF-08 (interfaz simple, botones grandes) y RNF-16 (accesibilidad, backlog). Si quiere una, va como propuesta.
 - `sdk.dir` en `local.properties` se completó a mano tras copiar el proyecto base (archivo local, no se sube a Git).
 - Lo que solo se puede comprobar en la tablet real: lápiz, latencia y rendimiento (etapa 3 en adelante).

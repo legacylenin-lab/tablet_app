@@ -40,6 +40,9 @@ Lista breve, para no volver a explicarlos desde cero. Ejemplos: commit, compilar
 - Commit en dos partes con GitHub Desktop: desmarcar un archivo para guardarlo después en otro commit (lo hizo bien 3 veces).
 - Mandar capturas de pantalla de la tablet para mostrar un problema.
 - Teclado flotante de Android: es un ajuste del teclado, no de la app.
+- Importar un PDF a la app (copia propia; el original no se toca) y la idea de «huella digital» (hash) para no duplicarlo.
+- Que un pedido nuevo que no está en los requisitos se anota como propuesta para Leyni antes de construirlo (PC-02).
+- Abrir y probar el prototipo de la app en la PC (la ventana la abre el asistente).
 
 ## 3. Lo que funciona y lo que no
 
@@ -65,6 +68,10 @@ Observaciones acumuladas, cada una con su fecha.
 | 17/11/2026 | Aunque se le recomendó cerrar tras 4 y 6 commits, prefirió seguir; la sesión llegó a 8 commits de código sin que se trabara | Recomendar el cierre una sola vez por bloque y respetar su decisión; él avisa cuando termina |
 | 17/11/2026 | El asistente empezó a editar archivos que iban en un commit que él aún no había hecho, y tuvo que deshacer esos cambios | No tocar archivos del próximo commit hasta comprobar con `git log` que ya se guardó |
 | 17/11/2026 | Preguntó por el mensaje del commit varias veces, aunque estaba en el texto anterior | Repetir siempre el mensaje del commit en un bloque propio justo antes de pedirle que guarde, aunque ya se haya dado |
+| 18/11/2026 | Pidió seguir tres veces cuando se le recomendó cerrar; la sesión llegó a 14 commits sin trabarse y sus pruebas siguieron siendo precisas | Recomendar el cierre una vez por bloque, como hasta ahora; los pasos de 15–30 min con prueba en la tablet le funcionan incluso en sesiones largas |
+| 18/11/2026 | Un fallo que él veía como «la barra no funciona» era la barra escondida detrás de la barra de íconos de Android; el asistente lo encontró con una captura de la tablet tomada por `adb` | Ante un «no funciona» en la tablet, tomar primero una captura con `adb` y, si se puede, simular el gesto (`adb shell input`) antes de pedirle más pruebas |
+| 18/11/2026 | Un «no funciona» en la PC (páginas en blanco) se aclaró probando el motor con sus PDF copiados desde la tablet: el escaneado con JPEG 2000 falla y el de texto no | Probar con sus archivos reales fuera del repositorio (carpeta temporal) y borrar la prueba temporal antes del commit |
+| 18/11/2026 | Trajo una idea de otra app (el candado de Nebo) con su propio cambio («que bloquee todo») y explicó para qué la usa | Repetir la idea con sus palabras y preguntar dónde la quiere antes de registrarla; registrarla como propuesta si no está en los requisitos |
 
 ## 4. Bitácora de sesiones
 
@@ -78,6 +85,7 @@ Se conservan las 10 más recientes; las anteriores se resumen en una línea por 
 | 18/11/2026 | Sesión larga (3 horas o más) | 4 | Librería de texto enriquecido validada y adoptada (compose-rich-editor 1.2.1) con pantalla de prueba y limpieza del HTML a `h1`–`h3`; duplicar y eliminar páginas. El dueño pidió texto y lápiz en la misma página: se registró como propuesta PC-01 para Leyni, sin implementarla. 6 commits. | Esperar la decisión de Leyni sobre PC-01; luego poner el texto en la página |
 | 18/11/2026 (2.ª sesión) | Sesión media | 4 | Tras la revisión de Leyni (PC-01 aprobada; PQ-20, PQ-23 y PQ-24 decididos): gesto «atrás» con `BackHandler` (PQ-23) y botón del lápiz con un solo toque (PQ-20; se midió en la tablet que un toque manda la tecla 600 solo al soltar). 3 commits. | PQ-24: ViewModels en código común (lista de cuadernos, cuaderno y páginas, lienzo), y luego los bloques de texto (RF-05) |
 | 17/11/2026 (fecha del reloj de la PC) | Sesión muy larga (más de 3 horas) | 4 | PQ-24 completo: ViewModels de la lista de cuadernos, las páginas y el lienzo, sin cambios visibles. RF-05: cuadros de texto sobre la hoja (crear sin encimar, escribir con teclado o a mano, formato, mover, ancho, eliminar con deshacer, «Borrar trazos» y «Borrar textos» por separado, modos Lápiz y Teclado). Fallos hallados en la tablet y corregidos: cuadro difícil de acertar con el lápiz, textos encimados, botones apretados que empujaban la hoja, el dedo no cambiaba el modo. 8 commits de código y 1 de documentos. | Reordenar páginas (RF-08); quitar la pantalla «Probar texto»; esperar a Leyni con PQ-25 |
+| 18/11/2026 (3.ª sesión) | Sesión muy larga (más de 3 horas) | 4 y 5 | Etapa 4 cerrada (reordenar páginas, quitar «Probar texto»). Etapa 5 en la tablet: Biblioteca con importar PDF sin duplicar, lector con flechas, «Ir a…», barra deslizable, zoom nítido y última página leída, eliminar documentos; espacio libre para las barras de Android en toda la app; medición con un libro de 1702 páginas (0,3 s la primera página). Windows: motor PDFBox y prototipo del lector (sin guardar); los PDF escaneados con JPEG 2000 salen en blanco (PQ-27). Propuestas para Leyni: PC-02 (candado), PQ-26 y PQ-27. 14 commits. | Esperar a Leyni (PQ-27, PQ-26, PC-02); si no responde, etapa 6 (respaldo y restauración) |
 
 ## 5. Resumen de sesiones anteriores
 
