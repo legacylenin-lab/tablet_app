@@ -43,6 +43,9 @@ Lista breve, para no volver a explicarlos desde cero. Ejemplos: commit, compilar
 - Importar un PDF a la app (copia propia; el original no se toca) y la idea de «huella digital» (hash) para no duplicarlo.
 - Que un pedido nuevo que no está en los requisitos se anota como propuesta para Leyni antes de construirlo (PC-02).
 - Abrir y probar el prototipo de la app en la PC (la ventana la abre el asistente).
+- Hacer un respaldo, elegir la carpeta en la ventana de Android (☰ → Descargas) y restaurarlo.
+- Autorizar la depuración USB en la tablet cuando aparece el aviso «¿Permitir la depuración USB?».
+- Grabar en cámara lenta para comparar el lápiz entre apps.
 
 ## 3. Lo que funciona y lo que no
 
@@ -72,6 +75,9 @@ Observaciones acumuladas, cada una con su fecha.
 | 18/11/2026 | Un fallo que él veía como «la barra no funciona» era la barra escondida detrás de la barra de íconos de Android; el asistente lo encontró con una captura de la tablet tomada por `adb` | Ante un «no funciona» en la tablet, tomar primero una captura con `adb` y, si se puede, simular el gesto (`adb shell input`) antes de pedirle más pruebas |
 | 18/11/2026 | Un «no funciona» en la PC (páginas en blanco) se aclaró probando el motor con sus PDF copiados desde la tablet: el escaneado con JPEG 2000 falla y el de texto no | Probar con sus archivos reales fuera del repositorio (carpeta temporal) y borrar la prueba temporal antes del commit |
 | 18/11/2026 | Trajo una idea de otra app (el candado de Nebo) con su propio cambio («que bloquee todo») y explicó para qué la usa | Repetir la idea con sus palabras y preguntar dónde la quiere antes de registrarla; registrarla como propuesta si no está en los requisitos |
+| 22/11/2026 | Dos veces un «no funciona» resultó otra cosa: el respaldo se había guardado en la última carpeta usada (no en Descargas) y la restauración «no cambió nada» porque el cuaderno de prueba no se llegó a crear | Antes de buscar un fallo, comprobar los datos con `adb` (archivos, base de datos) y, si hace falta, pedirle que repita el paso confirmando lo que ve en pantalla en cada punto |
+| 22/11/2026 | El repaso guiado en 3 partes, cada una con 6 o 7 puntos y un «todo bien» como respuesta posible, fue rápido y claro | Usar ese formato para las pruebas de aceptación y de cierre |
+| 22/11/2026 | Grabó y envió los videos por WhatsApp; la recompresión impidió medir con precisión | Para videos o archivos que se analizan, pedir que los pase por cable USB o Google Drive, no por WhatsApp |
 
 ## 4. Bitácora de sesiones
 
@@ -86,6 +92,7 @@ Se conservan las 10 más recientes; las anteriores se resumen en una línea por 
 | 18/11/2026 (2.ª sesión) | Sesión media | 4 | Tras la revisión de Leyni (PC-01 aprobada; PQ-20, PQ-23 y PQ-24 decididos): gesto «atrás» con `BackHandler` (PQ-23) y botón del lápiz con un solo toque (PQ-20; se midió en la tablet que un toque manda la tecla 600 solo al soltar). 3 commits. | PQ-24: ViewModels en código común (lista de cuadernos, cuaderno y páginas, lienzo), y luego los bloques de texto (RF-05) |
 | 17/11/2026 (fecha del reloj de la PC) | Sesión muy larga (más de 3 horas) | 4 | PQ-24 completo: ViewModels de la lista de cuadernos, las páginas y el lienzo, sin cambios visibles. RF-05: cuadros de texto sobre la hoja (crear sin encimar, escribir con teclado o a mano, formato, mover, ancho, eliminar con deshacer, «Borrar trazos» y «Borrar textos» por separado, modos Lápiz y Teclado). Fallos hallados en la tablet y corregidos: cuadro difícil de acertar con el lápiz, textos encimados, botones apretados que empujaban la hoja, el dedo no cambiaba el modo. 8 commits de código y 1 de documentos. | Reordenar páginas (RF-08); quitar la pantalla «Probar texto»; esperar a Leyni con PQ-25 |
 | 18/11/2026 (3.ª sesión) | Sesión muy larga (más de 3 horas) | 4 y 5 | Etapa 4 cerrada (reordenar páginas, quitar «Probar texto»). Etapa 5 en la tablet: Biblioteca con importar PDF sin duplicar, lector con flechas, «Ir a…», barra deslizable, zoom nítido y última página leída, eliminar documentos; espacio libre para las barras de Android en toda la app; medición con un libro de 1702 páginas (0,3 s la primera página). Windows: motor PDFBox y prototipo del lector (sin guardar); los PDF escaneados con JPEG 2000 salen en blanco (PQ-27). Propuestas para Leyni: PC-02 (candado), PQ-26 y PQ-27. 14 commits. | Esperar a Leyni (PQ-27, PQ-26, PC-02); si no responde, etapa 6 (respaldo y restauración) |
+| 22/11/2026 | Sesión larga (unas 3 horas) | 6 y pruebas de cierre de la v1 | Etapa 6 completa: pantalla Respaldo (crear, restaurar con confirmación y reinicio, «Volver a como estaba»). Prueba de fuego CP-09: respaldo → desinstalar → reinstalar → restaurar, con datos idénticos; respaldos falso y dañado rechazados. Repaso guiado CP-01 a CP-05 y CP-08 aprobado. Videos en cámara lenta del lápiz contra Nebo: parecidos. Leyni revisó y aprobó PC-02, PC-03 (etapa 7 de diseño), PQ-25, PQ-26 y PQ-27 (a). 6 commits. | PC-02 (candado) y PQ-25; luego quitar el código de plantilla y empezar la etapa 7 (diseño en Figma) |
 
 ## 5. Resumen de sesiones anteriores
 

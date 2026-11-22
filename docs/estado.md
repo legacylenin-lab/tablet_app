@@ -3,8 +3,8 @@
 > Lo actualiza el agente al cerrar cada sesión. Es breve: dónde estamos y qué sigue.
 
 **Versión en curso:** v1 (MVP Android)
-**Etapa actual:** 5, Biblioteca. En la tablet está completa (importar, leer, zoom, ir a una página, recordar la última, eliminar). Queda la parte de Windows del prototipo P-1, que depende de PQ-27.
-**Última actualización:** 18/11/2026
+**Etapa actual:** 6 terminada (respaldo y restauración, probado con desinstalación). Siguen los ajustes que aprobó Leyni (PC-02 y PQ-25) y luego la etapa 7, diseño visual, que cierra la v1.
+**Última actualización:** 22/11/2026
 
 ## Hecho
 - **Etapa 1:** proyecto base KMP (Android + Desktop) corriendo en el emulador y en Windows.
@@ -31,28 +31,28 @@
 - **Motor de PDF:** `AndroidPdfEngine` (`PdfRenderer`). Medido (P-1): abrir 0,06 s, primera página 0,3 s, cambio de página 0,22 s con 1702 páginas (`adb logcat -s PdfTiming`).
 - **Toda la app deja libre el espacio de la hora y de la barra de íconos de Android** (`App.kt`): antes la barra deslizable quedaba escondida.
 - **Windows, prototipo P-1:** `PdfBoxEngine` (PDFBox 3.0.8, en validación) y `desktopApp` muestra la Biblioteca y el lector **sin guardar nada** (base en memoria, PDF en carpeta temporal). Los PDF de texto se ven bien; los escaneados con JPEG 2000 salen en blanco (PQ-27). Faltan zoom con el mouse, selección de texto y búsqueda.
-- **Pruebas:** 272 pruebas propias en verde en la PC (`./gradlew build`), más las instrumentadas de la tinta en la tablet (`./gradlew :shared:connectedAndroidDeviceTest`).
+- **Etapa 6, respaldo y restauración (RF-17), probada en la tablet (22/11/2026):** pantalla «Respaldo» desde «Mis cuadernos». «Crear respaldo» guarda todo en un `.cuaderno-backup` donde elija el usuario (selector de Android). «Restaurar desde un archivo…» revisa el respaldo (fecha, número de PDF), pide confirmación, lo verifica entero, guarda una copia de lo actual (`files/backups/antes-de-restaurar.cuaderno-backup`) y reinicia la app; al arrancar, `RestoreInstaller` cambia la base y los PDF con la base todavía cerrada. «Volver a como estaba» deshace la última restauración. Interfaz delgada `BackupService` en `core:domain` (PQ-14) e intercambio final (PQ-17), los dos hechos. `AppContainer` es uno solo por proceso (antes se rearmaba al girar la tablet).
+- **Pruebas de cierre de la v1 (22/11/2026), en la tablet:** CP-01 a CP-05, CP-08 y CP-09 (respaldo → desinstalar → reinstalar → restaurar, con datos idénticos tabla por tabla; respaldos falso y dañado rechazados sin tocar nada). Latencia comparada con Nebo y aceptada por Leyni (PQ-21).
+- **Tercera revisión de Leyni (22/11/2026):** aprobó PC-02 (candado), PC-03 (diseño visual como etapa 7), PQ-25 (`restore` en los textos), PQ-26 (RNF-04: 2 s o menos) y PQ-27 opción (a) (probar `jai-imageio-jpeg2000` en Windows); aceptó PQ-21.
+- **Pruebas:** 293 pruebas propias en verde en la PC (`./gradlew build`), más las instrumentadas de la tinta en la tablet (`./gradlew :shared:connectedAndroidDeviceTest`).
 
 ## En curso
-- Nada abierto en el código. El cierre de esta sesión (documentos) queda por guardar en un commit.
+- Nada abierto en el código: todo está guardado. Falta guardar el cierre de esta sesión (documentos).
 
 ## Siguiente
-- **Ajustes aprobados por Leyni el 22/11/2026**, en este orden y con un commit por idea:
+- **Ajustes aprobados por Leyni el 22/11/2026**, en este orden y con un commit por idea (el dueño tiene tiempo: empezar por aquí en la próxima sesión):
   1. **PC-02, candado de la vista:** un estado «bloqueado» en `InkPageViewModel`/`NotebookPagesViewModel` y en `ReaderViewModel`. Con el candado activado, el dedo no desplaza, no hace zoom ni cambia de página, y se bloquean ◀ ▶, «Ir a…», la barra deslizable y «Ajustar»; el lápiz sigue escribiendo. Con pruebas en `commonTest` y probado en la tablet.
   2. **PQ-25:** `TextBlockRepository.restore(id)` (`arquitectura.md` §7), usado al deshacer el borrado de un texto, con su prueba.
   3. **PQ-27 (no bloquea la v1):** probar `jai-imageio-jpeg2000` en `jvmMain`. Antes, revisar el texto de su licencia y anotarlo en PQ-27; después, medir con el libro de 1702 páginas.
 - **Diseño visual (PC-03, aprobada el 22/11/2026):** es la **etapa 7** y el cierre de la v1. **Leer `docs/etapa-7-diseno.md` antes de empezarla.** Condiciones de entrada (§1): PC-02 y PQ-25 hechos; código de plantilla y prototipos quitados (PQ-06, PQ-22); `./gradlew build` en verde; etiqueta `v1.0-funcional` (la propone el agente, la crea Leyni o el dueño); app instalada en la tablet y en uso diario. El dueño diseña en Figma y entrega el `.fig`, el enlace y los PNG (§4.3); se cubren todas las pantallas del inventario (§6). Mientras tanto, anotar en §8 de esa guía lo que le moleste al usar la app.
-- **Nota de Leyni:** la etapa 6 (respaldo y restauración) se hizo el 22/11/2026 según los commits, pero este documento seguía en la etapa 5. Al cerrar la sesión, actualizar «Etapa actual», «Hecho» y «En curso».
 - **Windows (P-1), cuando se decida PQ-27:** zoom con Ctrl + rueda del mouse, selección de texto con el mouse y búsqueda.
-- **Textos, detalles conocidos:** la conversión a mano tarda cerca de 1 s en mostrar la línea roja (la dibuja el teclado de Android, igual en los dos modos; no depende de la app). Con el teclado flotante funciona bien; si el teclado acoplado tapara un texto de la parte baja, habrá que desplazar la hoja (aún no visto). Deshacer un texto eliminado lo recrea con un id nuevo (PQ-25, para Leyni).
+- **Textos, detalles conocidos:** la conversión a mano tarda cerca de 1 s en mostrar la línea roja (la dibuja el teclado de Android, igual en los dos modos; no depende de la app). Con el teclado flotante funciona bien; si el teclado acoplado tapara un texto de la parte baja, habrá que desplazar la hoja (aún no visto). Deshacer un texto eliminado lo recrea con un id nuevo: se corrige con PQ-25 (aprobado).
 - **Latencia (PQ-21):** aceptada por Leyni el 22/11/2026 por comparación con Nebo; no hace falta más para cerrar la v1.
 - Al inicio de cada etapa: revisar si ya hay una versión estable de Compose Material 3 (PQ-04b).
-- Para la etapa 6: último paso de la restauración y la interfaz delgada de `BackupService` en `core:domain` (PQ-14, PQ-17).
 - Para la v1.x: búsqueda de texto con FTS (PQ-18).
 
 ## Bloqueos o pendientes
 - **Revisión de Leyni (17/11/2026):** aprobó PC-01 (texto y lápiz en la misma página, en la v1), PQ-19 (se queda `androidx.ink` 1.0.0) y PQ-23 (`BackHandler`). PQ-20: se desactivó en los ajustes de la tablet el panel de Lenovo que capturaba el botón del lápiz; probar que un solo toque alterne lápiz/borrador. PQ-21: `androidx.ink` ya usa búfer frontal, predicción y entrada sin agrupar; Nebo (MyScript iink, comercial) no se adopta; medir contra Nebo. PQ-24 aprobado: ViewModels en código común antes de RF-05 (implementado).
-- **Abierto para Leyni:** PQ-25 (agregar `restore` al contrato de los textos), PQ-26 (umbral de RNF-04: propuesta de 2 s), PQ-27 (PDFBox no muestra imágenes JPEG 2000) y PC-02 (candado en el lector y los cuadernos).
-- **Pregunta del dueño (18/11/2026):** cuándo se trabaja la estética de la app. Los documentos no tienen una etapa de diseño visual: solo RNF-08 (interfaz simple, botones grandes) y RNF-16 (accesibilidad, backlog). Si quiere una, va como propuesta.
+- **Abierto para Leyni:** nada nuevo; todo lo pendiente quedó decidido el 22/11/2026.
 - `sdk.dir` en `local.properties` se completó a mano tras copiar el proyecto base (archivo local, no se sube a Git).
 - Lo que solo se puede comprobar en la tablet real: lápiz, latencia y rendimiento (etapa 3 en adelante).
