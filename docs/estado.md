@@ -37,11 +37,15 @@
 - Nada abierto en el código. El cierre de esta sesión (documentos) queda por guardar en un commit.
 
 ## Siguiente
-- **Esperar a Leyni:** PQ-27 (JPEG 2000 en Windows), PQ-26 (umbral de RNF-04), PC-02 (candado para congelar la vista) y PQ-25.
-- **Si Leyni no ha respondido:** pasar a la **etapa 6** (respaldo y restauración en la tablet: último paso de la restauración, interfaz `BackupService` en `core:domain`, pantalla), que no depende de nada pendiente. Con eso se llega al cierre de la v1.
+- **Ajustes aprobados por Leyni el 22/11/2026**, en este orden y con un commit por idea:
+  1. **PC-02, candado de la vista:** un estado «bloqueado» en `InkPageViewModel`/`NotebookPagesViewModel` y en `ReaderViewModel`. Con el candado activado, el dedo no desplaza, no hace zoom ni cambia de página, y se bloquean ◀ ▶, «Ir a…», la barra deslizable y «Ajustar»; el lápiz sigue escribiendo. Con pruebas en `commonTest` y probado en la tablet.
+  2. **PQ-25:** `TextBlockRepository.restore(id)` (`arquitectura.md` §7), usado al deshacer el borrado de un texto, con su prueba.
+  3. **PQ-27 (no bloquea la v1):** probar `jai-imageio-jpeg2000` en `jvmMain`. Antes, revisar el texto de su licencia y anotarlo en PQ-27; después, medir con el libro de 1702 páginas.
+- **Diseño visual (PC-03, aprobada el 22/11/2026):** es la **etapa 7** y el cierre de la v1 (`requisitos.md` §7 y §8). Antes de empezarla: terminar los puntos 1 y 2 de arriba, proponer al dueño marcar la etiqueta `v1.0-funcional` (la crea Leyni o el dueño en GitHub Desktop) e instalar la app en la tablet para usarla a diario. En la etapa 7 el dueño decide lo visual y el agente lo implementa en un tema único; plazo orientativo de 3 a 5 sesiones; entregables y aceptación en PC-03 y PA-10.
+- **Nota de Leyni:** la etapa 6 (respaldo y restauración) se hizo el 22/11/2026 según los commits, pero este documento seguía en la etapa 5. Al cerrar la sesión, actualizar «Etapa actual», «Hecho» y «En curso».
 - **Windows (P-1), cuando se decida PQ-27:** zoom con Ctrl + rueda del mouse, selección de texto con el mouse y búsqueda.
 - **Textos, detalles conocidos:** la conversión a mano tarda cerca de 1 s en mostrar la línea roja (la dibuja el teclado de Android, igual en los dos modos; no depende de la app). Con el teclado flotante funciona bien; si el teclado acoplado tapara un texto de la parte baja, habrá que desplazar la hoja (aún no visto). Deshacer un texto eliminado lo recrea con un id nuevo (PQ-25, para Leyni).
-- **Antes de cerrar la v1:** medir la latencia con cámara lenta contra Nebo (PQ-21, `plan-de-pruebas.md` §7.1).
+- **Latencia (PQ-21):** aceptada por Leyni el 22/11/2026 por comparación con Nebo; no hace falta más para cerrar la v1.
 - Al inicio de cada etapa: revisar si ya hay una versión estable de Compose Material 3 (PQ-04b).
 - Para la etapa 6: último paso de la restauración y la interfaz delgada de `BackupService` en `core:domain` (PQ-14, PQ-17).
 - Para la v1.x: búsqueda de texto con FTS (PQ-18).

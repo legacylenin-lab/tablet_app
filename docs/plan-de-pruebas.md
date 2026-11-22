@@ -274,6 +274,7 @@ Toda tarea de construcción y prueba documentada se ejecuta en la PC con ESET us
 | PA-07 (v2) | "Edité lo mismo en la tablet y en la PC sin sincronizar." | Ve ambas versiones y elige sin perder nada. |
 | PA-08 (v2) | "Arrastro un DOCX a la app de la PC." | Se convierte solo y aparece en la tablet. Si no hay LibreOffice, recibe instrucciones claras. |
 | PA-09 (v3) | "Hacemos una lluvia de ideas con dos amigos usando mi hotspot." | Se conectan siguiendo el manual y cada uno ve los trazos de los demás. |
+| PA-10 (v1, etapa 7) | "Recorro todas las pantallas de la app con el diseño nuevo, en vertical y horizontal." | El dueño está conforme con cada pantalla; los textos se leen bien (contraste suficiente) y los botones siguen siendo grandes (RNF-08); existe `docs/diseno.md` y las capturas de antes y después. |
 
 ---
 
@@ -300,6 +301,7 @@ Toda tarea de construcción y prueba documentada se ejecuta en la PC con ESET us
 | RF-28 | CP-16, CS-19, PA-08 |
 | RF-F1 | PA-09 |
 | RF-F2 | 7.7, PA-09 |
+| PC-03 (diseño visual) | PA-10 |
 | RNF-03 | 7.1, P-0 |
 | RNF-04, RNF-17, RNF-18 | 7.2, CS-09, P-1 |
 | RNF-06, RNF-19 | 7.3, CS-05, CS-08, CS-12 |

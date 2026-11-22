@@ -1,7 +1,7 @@
 # Requisitos de la app de notas y biblioteca (tablet + PC)
 
-**Estado del documento:** **v1.2, LÍNEA BASE APROBADA** por Leyni (programador del proyecto)
-**Fecha:** 17/11/2026
+**Estado del documento:** **v1.3, LÍNEA BASE APROBADA** por Leyni (programador del proyecto)
+**Fecha:** 22/11/2026
 **Documentos relacionados (todos en `docs/`):**
 - `arquitectura.md`: cómo se construye (módulos, datos, contratos).
 - `plan-de-pruebas.md`: cómo se verifica.
@@ -60,7 +60,7 @@ Funciones principales:
 
 | Versión | Contenido |
 |---|---|
-| **v1: MVP Android** | RF-01, RF-02, RF-03, RF-04, RF-05 (adelantado por PC-01), RF-10, RF-12, RF-16, RF-17. El modelo de datos ya está preparado para sincronizar (RNF-11). |
+| **v1: MVP Android** | RF-01, RF-02, RF-03, RF-04, RF-05 (adelantado por PC-01), RF-10, RF-12, RF-16, RF-17, más el candado de la vista (PC-02) y el diseño visual (PC-03, etapa 7). El modelo de datos ya está preparado para sincronizar (RNF-11). |
 | **v1.x: mejoras Android** | RF-11, RF-13, RF-18, RF-26 y RF-27, más el backlog que se priorice (RF-06 a RF-09, RF-14, RF-15, RF-19). |
 | **v2: PC + sincronización** | RF-21 a RF-25, más RF-28 (conversión automática de DOCX, opcional). |
 | **v3: colaboración local** | RF-F1 y RF-F2. |
@@ -130,7 +130,7 @@ Funciones principales:
 | RNF-01 | Plataforma | **Android 16** (Lenovo Idea Tab) y **Windows 11**. Los dispositivos de los amigos (laptops o tablets) se definen al iniciar la v3. macOS queda fuera. | Confirmado |
 | RNF-02 | Entorno | Se desarrolla y prueba en la PC. Se prueba en la tablet real durante el desarrollo y se instala allí la versión final. | Confirmado |
 | RNF-03 | Rendimiento | Trazo del lápiz sin retraso perceptible e interfaz fluida (objetivo: ≥ 60 cuadros por segundo). Se valida con prueba manual en la tablet. | Confirmado |
-| RNF-04 | Rendimiento | Un PDF de 500 páginas o más muestra la primera página en pocos segundos. El umbral se fija tras el prototipo P-1. | Confirmado |
+| RNF-04 | Rendimiento | Un PDF de 500 páginas o más muestra la primera página en **2 s o menos** en la tablet. Medido en el P-1: 0,3 s con un PDF de 1702 páginas (tablet) y 0,7 s en la PC. | Confirmado (umbral fijado el 22/11/2026, PQ-26) |
 | RNF-05 | Disponibilidad | Funciona **sin internet**. La sincronización y la colaboración usan solo la red local o el hotspot. | Confirmado |
 | RNF-06 | Fiabilidad | No se pierden datos si la app se cierra, falla o se queda sin batería. El guardado es incremental. | Confirmado |
 | RNF-07 | Privacidad | Los datos solo viven en los dispositivos del dueño (y en los de los participantes de la v3). Solo viajan por la red local, entre dispositivos emparejados y cifrados. Sin nube, sin terceros y sin analítica. | Confirmado |
@@ -323,10 +323,11 @@ Se definen en `plan-de-pruebas.md`.
 3. **Lienzo con lápiz** en la tablet real (prototipo de tinta, RF-02 y RF-03).
 4. **Notas:** cuadernos, páginas A4, texto enriquecido y guardado automático.
 5. **Biblioteca:** importar y leer PDF (con la guía para DOCX) y recordar la página, más el **prototipo P-1**.
-6. **Respaldo y restauración.** → **Cierre de la v1.**
-7. **v1.x:** anotaciones, exportar e imprimir (con el prototipo P-2), reimportación y el backlog priorizado.
-8. **v2:** app de Windows completa, emparejamiento por QR con TLS (prototipo P-3), sincronización, conflictos y conversión de DOCX opcional.
-9. **v3:** colaboración en red local y manual del hotspot.
+6. **Respaldo y restauración.** → punto de control: etiqueta `v1.0-funcional` y uso diario en la tablet.
+7. **Diseño visual** (PC-03): guía de estilo, tema único y revisión de todas las pantallas. → **Cierre de la v1** (etiqueta `v1.0`).
+8. **v1.x:** anotaciones, exportar e imprimir (con el prototipo P-2), reimportación y el backlog priorizado.
+9. **v2:** app de Windows completa, emparejamiento por QR con TLS (prototipo P-3), sincronización, conflictos y conversión de DOCX opcional.
+10. **v3:** colaboración en red local y manual del hotspot.
 
 ---
 
@@ -341,10 +342,12 @@ Se definen en `plan-de-pruebas.md`.
 | 1.0 | 31/10/2026 | Línea base aprobada. Solo PDF; RF-28 condicionado a RNF-21. TLS 1.3 mutuo aprobado. |
 | **1.1** | **16/11/2026** | **Cambio de stack:** Flutter → Kotlin + Compose Multiplatform, porque ESET bloquea PowerShell y Flutter depende de él (nuevo RNF-22). Validado en la PC: Android y escritorio compilan y corren. Se actualizan las secciones 4, 5.10, 5.11, 5.12, 5.13 y 7. Los documentos pasan al repositorio (`docs/`) y se agrega `arquitectura.md`. Los requisitos funcionales no cambian. |
 | 1.2 | 17/11/2026 | PC-01 aprobada por Leyni: RF-05 (trazos y bloques de texto en la misma página) pasa del backlog de la v1.x a la v1 (etapa 4). Prioridad S: si se complica, no bloquea el cierre de la v1, que sigue exigiendo RF-04. |
+| 1.3 | 22/11/2026 | Revisión de Leyni: PC-02 aprobada (candado de la vista en la v1). RNF-04 fija su umbral en 2 s (PQ-26). Latencia del lápiz (RNF-03) aceptada para la v1 por comparación con Nebo (PQ-21). PC-03 aprobada: diseño visual como etapa 7 y cierre de la v1, con punto de control `v1.0-funcional`. |
 
 **Propuestas de cambio posteriores a la v1.1** (las registran los agentes o Leyni; solo Leyni las aprueba):
 
 | ID | Fecha | Propuesta | Origen | Impacto | Estado |
 |---|---|---|---|---|---|
 | PC-01 | 18/11/2026 | **Adelantar RF-05 a la v1:** poder combinar en una misma página los trazos a mano y los bloques de texto enriquecido (cuadros de texto sobre la hoja donde también se dibuja). Hoy RF-05 está en el backlog de la v1.x y la v1 solo pide RF-04 (texto en bloques). | Dueño: quiere escribir texto y dibujar en la misma página. | El modelo de datos ya lo soporta (`TextBlock` con página, posición y ancho; repositorio hecho). Cuesta más que páginas de texto aparte: mover y redimensionar bloques, convivir con los gestos del lápiz y del dedo, y el orden en que se dibujan. Estimado: 2 o 3 sesiones más. Encaja en la etapa 4 de la v1. No contradice otras decisiones, salvo mover RF-05 de «Backlog (S)» a la v1. | **Aprobada (17/11/2026)** |
-| PC-02 | 18/11/2026 | **Botón de candado (bloqueo de la vista)** en el lector de PDF y en los cuadernos. Mientras está activado, la hoja queda «congelada» con el zoom y la posición que tenga en ese momento: el dedo no desplaza, no hace zoom y no cambia de página, y también se bloquean ◀ ▶, «Ir a…», la barra deslizable y «Ajustar». El lápiz sigue escribiendo. Otro toque lo desbloquea. | Dueño: en Nebo tomaba notas y resolvía problemas de matemáticas sobre las hojas de los PDF, y la mano movía la hoja o cambiaba de página sin querer. El candado de Nebo solo bloqueaba el zoom; él quiere que bloquee todo. | Pequeño: un estado «bloqueado» en `InkPageViewModel`/`NotebookPagesViewModel` y en `ReaderViewModel`, que ignora gestos y botones de navegación, con sus pruebas. Estimado: menos de una sesión. No cambia datos, contratos ni librerías. En los cuadernos sirve desde ya (amplía RF-03). En el lector se nota de verdad cuando se pueda escribir sobre el PDF (RF-13, v1.x); hasta entonces solo evita mover la página al leer. Encajaría en la etapa 5 de la v1 (prioridad S) o junto con RF-13 en la v1.x. | Pendiente de revisión (Leyni) |
+| PC-02 | 18/11/2026 | **Botón de candado (bloqueo de la vista)** en el lector de PDF y en los cuadernos. Mientras está activado, la hoja queda «congelada» con el zoom y la posición que tenga en ese momento: el dedo no desplaza, no hace zoom y no cambia de página, y también se bloquean ◀ ▶, «Ir a…», la barra deslizable y «Ajustar». El lápiz sigue escribiendo. Otro toque lo desbloquea. | Dueño: en Nebo tomaba notas y resolvía problemas de matemáticas sobre las hojas de los PDF, y la mano movía la hoja o cambiaba de página sin querer. El candado de Nebo solo bloqueaba el zoom; él quiere que bloquee todo. | Pequeño: un estado «bloqueado» en `InkPageViewModel`/`NotebookPagesViewModel` y en `ReaderViewModel`, que ignora gestos y botones de navegación, con sus pruebas. Estimado: menos de una sesión. No cambia datos, contratos ni librerías. En los cuadernos sirve desde ya (amplía RF-03). En el lector se nota de verdad cuando se pueda escribir sobre el PDF (RF-13, v1.x); hasta entonces solo evita mover la página al leer. Encajaría en la etapa 5 de la v1 (prioridad S) o junto con RF-13 en la v1.x. | **Aprobada (22/11/2026):** en la v1, en los cuadernos y en el lector |
+| PC-03 | 22/11/2026 | **Diseño visual de la interfaz como paso final de la v1 (etapa 7).** Alcance cerrado a lo visual: paleta de colores, tipografías, íconos, formas, espaciados y distribución de cada pantalla de la v1; se decide además si entra el modo oscuro (RF-19). **No entran funciones nuevas**: si al diseñar surge una, va como propuesta aparte. Respeta RNF-08 (simple, botones grandes) y RNF-14 (fuentes e íconos con licencia libre), y suma una revisión de contraste (de RNF-16). **Roles:** el dueño decide todo lo visual (bocetos, referencias, herramientas visuales como Material Theme Builder o Figma); el agente lo traduce a un tema único en `shared` (que Windows hereda en la v2), le muestra vistas previas y le avisa de lo que no es viable. **Entregables:** `docs/diseno.md` (guía de estilo), el tema implementado en un solo lugar, todas las pantallas de la v1 revisadas y capturas de antes y después. **Plazo orientativo:** 3 a 5 sesiones; hay margen (unos 4 meses antes de clases), pero las ideas que excedan el plazo pasan a la v1.x. **Punto de control:** antes de empezar, cerrar los ajustes pendientes (PC-02, PQ-25), marcar la etiqueta `v1.0-funcional` e instalar la app en la tablet para usarla a diario mientras se diseña. Al cerrar la etapa 7: etiqueta `v1.0`. | Dueño: quiere cerrar la v1 con la interfaz a su gusto. Leyni eligió la opción C (diseño dentro de la v1, con punto de control previo). | No cambia datos, contratos ni requisitos funcionales. Puede agregar fuentes e íconos (anotarlos en `arquitectura.md` §11 con su licencia). Retrasa el cierre formal de la v1, pero la app ya se usa desde `v1.0-funcional`. | **Aprobada (22/11/2026)** |

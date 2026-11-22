@@ -1,7 +1,7 @@
 # Arquitectura de la app de notas y biblioteca
 
-**Versión:** 1.1, aprobada por Leyni
-**Fecha:** 17/11/2026
+**Versión:** 1.2, aprobada por Leyni
+**Fecha:** 22/11/2026
 **Basado en:** `docs/requisitos.md` v1.1
 
 > **Para los agentes:** este documento define **cómo** se construye la app. Los contratos de esta página (entidades, interfaces, formatos) **no se cambian sin una propuesta registrada** en `docs/requisitos.md` §8. Los detalles internos de una implementación sí se pueden ajustar libremente, siempre que respeten el contrato. Si una desviación es dudosa, anótala en `docs/pendientes-a-consultar.md`.
@@ -290,6 +290,7 @@ interface TextBlockRepository {
     suspend fun updateContent(id: EntityId, html: String)
     suspend fun moveResize(id: EntityId, x: Int, y: Int, width: Int)
     suspend fun delete(id: EntityId)
+    suspend fun restore(id: EntityId)                          // deshacer un borrado: mismo id (PQ-25)
 }
 
 interface DocumentRepository {
@@ -325,7 +326,7 @@ Se definen como interfaces en `core:domain` y se implementan en `androidMain` y 
 
 | Contrato | Android | Windows | Notas |
 |---|---|---|---|
-| `PdfEngine` (abrir, número de páginas, renderizar página a mapa de bits, texto con posiciones, buscar) | `PdfRenderer` | PDFBox | Validar en P-1. |
+| `PdfEngine` (abrir, número de páginas, renderizar página a mapa de bits, texto con posiciones, buscar) | `PdfRenderer` | PDFBox + decodificador JPEG 2000 (PQ-27) | Validar en P-1. |
 | `FilePicker` (elegir PDF o respaldo, elegir destino) | Storage Access Framework | `JFileChooser` o diálogo nativo | — |
 | `PrintService` (imprimir un PDF generado) | `PrintManager` | PDFBox + `java.awt.print` | RF-27 |
 | `PdfExporter` (notas → PDF; documento + capa → PDF) | PdfBox-Android | PDFBox | P-2 |
@@ -392,6 +393,7 @@ Versiones exactas fijadas el **17/11/2026**, tal como están en `gradle/libs.ver
 | compose-rich-editor | 1.2.1 | Apache 2.0 | **Adoptada** (18/11/2026): compila en Android y PC, resiste ida y vuelta por HTML y se probó en la tablet. Los títulos se normalizan a `h1`–`h3` con `RichTextHtml` |
 | androidx.ink | — | Apache 2.0 | Aprobada. **Adoptada** en la versión estable 1.0.0 tras el prototipo P-0 (17/11/2026). Trae como dependencias transitivas `androidx.input:input-motionprediction` 1.0.0 (predicción del trazo) y `androidx.graphics:graphics-core` 1.0.4 (dibujo en el búfer frontal); `InProgressStrokes` las usa por dentro (PQ-21) |
 | Apache PDFBox | 3.0.8 | Apache 2.0 | **En validación (P-1, 18/11/2026):** fijada en `core:data` (`jvmMain`) para el motor de PDF de Windows (`PdfBoxEngine`). Se adopta o se descarta al terminar el P-1 |
+| `com.github.jai-imageio:jai-imageio-jpeg2000` | — (se fija al adoptarla) | JJ2000 (no Apache): **revisar el texto de la licencia antes de adoptarla** (RNF-14) | **Aprobada para validar (PQ-27, 22/11/2026)** solo en `jvmMain` (Windows), para que PDFBox muestre los PDF escaneados con JPEG 2000. Se adopta si la licencia es compatible y el libro de 1702 páginas se ve en un tiempo razonable. Si no, se evalúa PDFium como alternativa al iniciar la v2. |
 | PdfBox-Android | — | Apache 2.0 | A validar en P-2 |
 | Ktor, JmDNS, ZXing, CameraX, ML Kit | — | Apache 2.0 | Solo cuando llegue su versión |
 
@@ -405,3 +407,4 @@ Versiones exactas fijadas el **17/11/2026**, tal como están en `gradle/libs.ver
 |---|---|---|
 | 1.0 | 16/11/2026 | Primera versión aprobada. |
 | 1.1 | 17/11/2026 | Decisiones de Leyni sobre `pendientes-a-consultar.md`: estructura real de módulos (§2, ADR-09); `EntityId` (§3.1, ADR-10); `minSdk = 30` (§2, ADR-11); paquete `app.cuaderno` confirmado (§9); versiones fijadas con Material 3 alfa como provisional (§11); tipos de `color` y `baseWidth` confirmados (§3.3); pruebas de base de datos en `jvmTest` más una prueba en el emulador (§9); respaldo en `core:data` con interfaz de dominio en la etapa 6 (§7); `title_sort` (§3.5, §6, ADR-12); fecha del respaldo en milisegundos (§5.3); `PropertyEscape` desactivada (§9); búsqueda futura con FTS (§6). |
+| 1.2 | 22/11/2026 | Revisión de Leyni: `TextBlockRepository.restore` para deshacer borrados con el mismo id (§7, PQ-25); decodificador JPEG 2000 aprobado para validar en Windows (§8, §11, PQ-27). |
