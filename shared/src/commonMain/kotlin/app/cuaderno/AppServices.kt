@@ -1,5 +1,6 @@
 package app.cuaderno
 
+import app.cuaderno.domain.BackupService
 import app.cuaderno.domain.DocumentRepository
 import app.cuaderno.domain.InkRepository
 import app.cuaderno.domain.NotebookRepository
@@ -26,6 +27,7 @@ class AppServices(
     val text: TextBlockRepository,
     val documents: DocumentRepository,
     val pdf: PdfEngine,
+    val backup: BackupService,
     val saveScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
 ) {
     /** Lo que usan la Biblioteca y el lector de PDF. */

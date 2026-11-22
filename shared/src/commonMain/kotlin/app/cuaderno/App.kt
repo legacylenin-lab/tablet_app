@@ -16,6 +16,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.tooling.preview.Preview
+import app.cuaderno.backup.BackupScreen
 import app.cuaderno.ink.InkPrototypeScreen
 import app.cuaderno.library.LibraryScreen
 import app.cuaderno.library.ReaderScreen
@@ -30,6 +31,7 @@ fun App(services: AppServices? = null) {
         var open by remember { mutableStateOf<Notebook?>(null) }
         var library by remember { mutableStateOf(false) }
         var reading by remember { mutableStateOf<Document?>(null) }
+        var backup by remember { mutableStateOf(false) }
         val current = open
         val document = reading
         // La app dibuja hasta el borde (edge-to-edge): se deja libre el espacio de la hora y de la
@@ -49,7 +51,16 @@ fun App(services: AppServices? = null) {
                 SystemBackHandler { library = false }
                 LibraryScreen(services.library, onBack = { library = false }, onOpen = { reading = it })
             }
-            current == null -> NotebookListScreen(services, onOpen = { open = it }, onLibrary = { library = true })
+            backup -> {
+                SystemBackHandler { backup = false }
+                BackupScreen(services.backup, onBack = { backup = false })
+            }
+            current == null -> NotebookListScreen(
+                services,
+                onOpen = { open = it },
+                onLibrary = { library = true },
+                onBackup = { backup = true },
+            )
             else -> ScopedViewModels(key = current.meta.id) {
                 InkPrototypeScreen(services, notebook = current, onBack = { open = null })
             }
