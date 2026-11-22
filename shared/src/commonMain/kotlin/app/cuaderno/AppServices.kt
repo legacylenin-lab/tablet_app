@@ -28,6 +28,8 @@ class AppServices(
     val documents: DocumentRepository,
     val pdf: PdfEngine,
     val backup: BackupService,
+    /** Aviso para mostrar una vez al abrir la app (por ejemplo, «se restauró el respaldo»). */
+    val startupMessage: String? = null,
     val saveScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
 ) {
     /** Lo que usan la Biblioteca y el lector de PDF. */

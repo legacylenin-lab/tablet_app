@@ -32,6 +32,7 @@ fun App(services: AppServices? = null) {
         var library by remember { mutableStateOf(false) }
         var reading by remember { mutableStateOf<Document?>(null) }
         var backup by remember { mutableStateOf(false) }
+        var startupMessage by remember { mutableStateOf(services?.startupMessage) }
         val current = open
         val document = reading
         // La app dibuja hasta el borde (edge-to-edge): se deja libre el espacio de la hora y de la
@@ -60,6 +61,8 @@ fun App(services: AppServices? = null) {
                 onOpen = { open = it },
                 onLibrary = { library = true },
                 onBackup = { backup = true },
+                startupMessage = startupMessage,
+                onDismissStartupMessage = { startupMessage = null },
             )
             else -> ScopedViewModels(key = current.meta.id) {
                 InkPrototypeScreen(services, notebook = current, onBack = { open = null })

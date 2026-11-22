@@ -41,6 +41,9 @@ fun NotebookListScreen(
     onOpen: (Notebook) -> Unit,
     onLibrary: () -> Unit,
     onBackup: () -> Unit,
+    /** Aviso de una sola vez al abrir la app (por ejemplo, tras restaurar un respaldo). */
+    startupMessage: String? = null,
+    onDismissStartupMessage: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: NotebookListViewModel = viewModel { NotebookListViewModel(services.notebooks) },
 ) {
@@ -54,6 +57,12 @@ fun NotebookListScreen(
             Button(onClick = viewModel::onCreateClick) { Text("Nuevo cuaderno") }
         }
         state.message?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 8.dp)) }
+        startupMessage?.let { message ->
+            Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(message, modifier = Modifier.weight(1f))
+                TextButton(onClick = onDismissStartupMessage) { Text("Cerrar") }
+            }
+        }
 
         val list = state.notebooks
         when {

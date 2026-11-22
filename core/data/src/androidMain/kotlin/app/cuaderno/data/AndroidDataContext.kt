@@ -20,8 +20,12 @@ class AndroidStorage(
     authorId: EntityId,
     ids: IdGenerator,
     appVersion: String,
-    databaseName: String = "cuaderno.db",
+    databaseName: String = DATABASE_NAME,
 ) {
+    companion object {
+        const val DATABASE_NAME = "cuaderno.db"
+    }
+
     private val app = context.applicationContext
     val driver: SqlDriver = AndroidSqliteDriver(CuadernoDatabase.Schema, app, databaseName)
     val data = DataContext(CuadernoDatabase(driver), deviceId, authorId, ids) { System.currentTimeMillis() }

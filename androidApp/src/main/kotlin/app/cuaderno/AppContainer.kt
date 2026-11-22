@@ -10,6 +10,9 @@ import app.cuaderno.data.SqlNotebookRepository
 import app.cuaderno.data.SqlPageRepository
 import app.cuaderno.data.SqlTextBlockRepository
 import app.cuaderno.data.backup.AppBackupService
+import app.cuaderno.data.backup.RestoreFiles
+import app.cuaderno.data.backup.RestoreInstaller
+import java.io.File
 import app.cuaderno.domain.RandomIdGenerator
 import app.cuaderno.library.AndroidPlatformFile
 import app.cuaderno.model.EntityId
@@ -38,6 +41,23 @@ class AppContainer(context: Context) {
         val appVersion = runCatching {
             appContext.packageManager.getPackageInfo(appContext.packageName, 0).versionName
         }.getOrNull() ?: "?"
+
+        // Restauración en dos tiempos (arquitectura §5.3): si se dejó una preparada, se termina
+        // ahora, antes de abrir la base de datos.
+        val restoreFiles = RestoreFiles(
+            stagingDir = File(appContext.filesDir, "restore-staging"),
+            marker = File(appContext.filesDir, "restore-pending"),
+            previousData = File(appContext.filesDir, "backups/antes-de-restaurar.cuaderno-backup"),
+        )
+        val restored = runCatching {
+            RestoreInstaller(
+                restoreFiles.stagingDir,
+                restoreFiles.marker,
+                appContext.getDatabasePath(AndroidStorage.DATABASE_NAME),
+                File(appContext.filesDir, "documents"),
+            ).applyIfPending()
+        }
+
         val storage = AndroidStorage(appContext, stableId("device_id"), stableId("author_id"), ids, appVersion)
         val data = storage.data
         val files = FileDocumentStore(storage.documentsDir, Dispatchers.IO) { file ->
@@ -51,8 +71,17 @@ class AppContainer(context: Context) {
             text = SqlTextBlockRepository(data, Dispatchers.IO),
             documents = SqlDocumentRepository(data, Dispatchers.IO, files, pdf),
             pdf = pdf,
-            backup = AppBackupService(storage.backup, Dispatchers.IO) { file ->
-                (file as AndroidPlatformFile).openForWriting(appContext)
+            backup = AppBackupService(
+                storage.backup,
+                restoreFiles,
+                Dispatchers.IO,
+                openInput = { file -> (file as AndroidPlatformFile).open(appContext) },
+                openOutput = { file -> (file as AndroidPlatformFile).openForWriting(appContext) },
+            ),
+            startupMessage = when {
+                restored.getOrNull() == true -> "Se restauró el respaldo: tus cuadernos y tu biblioteca son los del archivo elegido."
+                restored.isFailure -> "No se pudo terminar la restauración: ${restored.exceptionOrNull()?.message}. Avísale a Leyni."
+                else -> null
             },
         )
     }

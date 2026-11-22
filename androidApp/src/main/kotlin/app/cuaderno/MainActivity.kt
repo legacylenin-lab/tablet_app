@@ -10,7 +10,15 @@ import androidx.compose.ui.tooling.preview.Preview
 import app.cuaderno.ink.PenButton
 
 class MainActivity : ComponentActivity() {
-    private val container by lazy { AppContainer(applicationContext) }
+    /**
+     * Uno solo por proceso: al girar la tablet Android crea otra `MainActivity`, pero la base de
+     * datos no debe abrirse dos veces ni repetirse el arranque de una restauración.
+     */
+    private val container by lazy { shared ?: AppContainer(applicationContext).also { shared = it } }
+
+    private companion object {
+        var shared: AppContainer? = null
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
