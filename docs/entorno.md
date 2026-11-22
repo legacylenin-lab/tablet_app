@@ -52,6 +52,12 @@ El repositorio todavía no tiene el código base. Lo crea el dueño, guiado por 
 5. El dueño abre el proyecto en Android Studio y ejecuta la versión de escritorio y la de Android con ▶.
 6. Commit en GitHub Desktop: `Agrega proyecto base Kotlin Multiplatform`.
 
+## Diseño con Figma (etapa 7)
+
+- El dueño diseña en **Figma** (cuenta gratuita). El proceso completo, las medidas de los marcos y la convención de entrega (archivo `.fig`, enlace al archivo en Figma y PNG por pantalla, en `docs/diseno/`) están en `docs/etapa-7-diseno.md` §4.
+- **Servidor MCP de Figma** (`https://mcp.figma.com/mcp`): se conecta a Claude Code con la cuenta de Figma del dueño, para que el agente lea el diseño. En el plan gratuito permite unas **20 llamadas al mes**: se reservan para pantallas ya aprobadas. La forma exacta de conectarlo depende de la versión de Claude Desktop; se verifica al llegar a la etapa 7.
+- Las medidas de la tablet en dp las obtiene el agente con la tablet conectada: `adb shell wm size` y `adb shell wm density`.
+
 ## Tablet real
 
 - Activa las opciones de desarrollador: en *Ajustes → Acerca de la tablet*, toca 7 veces "Número de compilación".

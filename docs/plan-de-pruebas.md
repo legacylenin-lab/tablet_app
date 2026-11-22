@@ -122,6 +122,7 @@
 | CP-14 | RF-18, RF-27 | Exportar e imprimir una nota A4 y un PDF anotado desde Android y Windows; elegir el rango y las copias | Se abre el diálogo nativo y el resultado coincide con lo que se ve en pantalla. |
 | CP-15 | RF-27 | Imprimir un documento de 500 páginas | No se agota la memoria y se muestra el progreso. |
 | CP-16 | RF-28, RNF-21 | En la PC con LibreOffice, importar los DOCX de prueba y seguir usando la app mientras convierte; repetir con el dañado y con uno que supere el tiempo máximo | PDF fiel. **La interfaz no se congela** (medir con el profiler de Android Studio o con el contador de cuadros). Los errores se cancelan y muestran la guía. **Si falla la fluidez, RF-28 se descarta.** |
+| CP-17 | PC-03, RNF-08, RNF-09 | Por cada pantalla rediseñada en la etapa 7: compararla con su marco de Figma en la tablet real (vertical y horizontal); medir los elementos táctiles; revisar el contraste con una herramienta de contraste sobre los colores del tema; repetir el uso normal de la pantalla | Coincide con el diseño (diferencias explicadas en `docs/etapa-7-diseno.md` §8); solo usa valores del tema; todo lo táctil mide ≥ 48 × 48 dp; contraste ≥ 4,5:1 en texto normal y ≥ 3:1 en texto grande e íconos; el comportamiento no cambió y las pruebas existentes pasan; el dueño la aprueba. |
 | CP-17 | RF-05 | En una página con trazos: agregar textos, escribir con el teclado y a mano (modo Lápiz), moverlos y cambiar su ancho; eliminar uno y deshacer; «Borrar trazos» y «Borrar textos»; cambiar de página y reabrir la app | Los textos no se enciman al crearlos, el lápiz escribe tinta encima de los que no se editan, el dedo nunca escribe y todo persiste. Deshacer sigue el orden de trazos y textos. |
 
 **Casos unitarios obligatorios de la etapa 2** (base de todo lo demás):
@@ -274,7 +275,7 @@ Toda tarea de construcción y prueba documentada se ejecuta en la PC con ESET us
 | PA-07 (v2) | "Edité lo mismo en la tablet y en la PC sin sincronizar." | Ve ambas versiones y elige sin perder nada. |
 | PA-08 (v2) | "Arrastro un DOCX a la app de la PC." | Se convierte solo y aparece en la tablet. Si no hay LibreOffice, recibe instrucciones claras. |
 | PA-09 (v3) | "Hacemos una lluvia de ideas con dos amigos usando mi hotspot." | Se conectan siguiendo el manual y cada uno ve los trazos de los demás. |
-| PA-10 (v1, etapa 7) | "Recorro todas las pantallas de la app con el diseño nuevo, en vertical y horizontal." | El dueño está conforme con cada pantalla; los textos se leen bien (contraste suficiente) y los botones siguen siendo grandes (RNF-08); existe `docs/diseno.md` y las capturas de antes y después. |
+| PA-10 (v1, etapa 7) | "Recorro todas las pantallas de la app con el diseño nuevo, en vertical y horizontal." | Se cumplen los criterios de cierre de la etapa en `docs/etapa-7-diseno.md` §9: el dueño está conforme con cada pantalla; ninguna queda "Diferida (v1)" ni hay un `PQ-` de diseño abierto; existen `docs/diseno.md`, el `.fig`, los PNG y las capturas de antes y después. |
 
 ---
 
@@ -301,7 +302,7 @@ Toda tarea de construcción y prueba documentada se ejecuta en la PC con ESET us
 | RF-28 | CP-16, CS-19, PA-08 |
 | RF-F1 | PA-09 |
 | RF-F2 | 7.7, PA-09 |
-| PC-03 (diseño visual) | PA-10 |
+| PC-03 (diseño visual) | CP-17, PA-10 |
 | RNF-03 | 7.1, P-0 |
 | RNF-04, RNF-17, RNF-18 | 7.2, CS-09, P-1 |
 | RNF-06, RNF-19 | 7.3, CS-05, CS-08, CS-12 |

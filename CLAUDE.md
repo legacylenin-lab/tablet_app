@@ -29,6 +29,8 @@ Este repositorio es la **app de notas y biblioteca** para tablet Android y PC co
 | `estado.md` | En qué etapa estamos y qué sigue | Sí, al cerrar cada sesión |
 | `ritmo-de-trabajo.md` | Cómo trabaja y aprende el dueño (documento vivo) | Sí, al cerrar cada sesión |
 | `guia-git.md`, `entorno.md` | Guías prácticas | Sí, si descubres algo que las mejora |
+| `etapa-7-diseno.md` | Proceso del diseño visual (Figma, entrega del `.fig`, inventario de pantallas, criterios de aceptación) | Sí, el inventario (§6), las medidas (§4.1) y el registro (§8); el resto, no sin propuesta |
+| `diseno/` | Archivos del diseño que entrega el dueño (`.fig`, PNG, capturas) | Solo para guardar capturas y exportaciones |
 | `pendientes-a-consultar.md` | Puntos para que Leyni decida (prefijo `PQ-`) | Sí, agrega filas "Abierto" y marca lo implementado; **solo Leyni decide** |
 
 **Prefijos:** `PQ-xx` = pendiente a consultar (`pendientes-a-consultar.md`); `PC-xx` = propuesta de cambio de requisitos (`requisitos.md` §8). No los mezcles.
